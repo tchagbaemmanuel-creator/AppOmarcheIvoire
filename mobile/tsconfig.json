@@ -1,0 +1,31 @@
+{
+	"compilerOptions": {
+		"target": "esnext",
+		"moduleResolution": "node",
+		"allowJs": false,
+		"noEmit": true,
+		"strict": true,
+		"isolatedModules": true,
+		"esModuleInterop": true,
+		"jsx": "react-native",
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"importHelpers": true,
+		"alwaysStrict": true,
+		"forceConsistentCasingInFileNames": true,
+		"strictFunctionTypes": true,
+		"noFallthroughCasesInSwitch": true,
+		"strictNullChecks": true,
+		"allowSyntheticDefaultImports": true,
+		"lib": ["es6"],
+		"paths": {
+			"@/*": ["./src/*"]
+		},
+		"types": ["react", "react-native"]
+	},
+	"extends": "expo/tsconfig.base"
+}

@@ -1,0 +1,1728 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 16.9 (Ubuntu 16.9-0ubuntu0.24.04.1)
+-- Dumped by pg_dump version 16.9 (Ubuntu 16.9-0ubuntu0.24.04.1)
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+ALTER SCHEMA public OWNER TO postgres;
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: postgres
+--
+
+COMMENT ON SCHEMA public IS '';
+
+
+--
+-- Name: area_code; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.area_code AS ENUM (
+    'ABOBO',
+    'ADJAME',
+    'ATTECOUBE',
+    'COCODY',
+    'KOUMASSI',
+    'MARCORY',
+    'PLATEAU',
+    'TREICHVILLE',
+    'YOPOUGON',
+    'BROFODOUME',
+    'BINGERVILLE',
+    'PORT_BOUET',
+    'ANYAMA',
+    'SONGON'
+);
+
+
+ALTER TYPE public.area_code OWNER TO postgres;
+
+--
+-- Name: order_status; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.order_status AS ENUM (
+    'IDLE',
+    'PROCESSING',
+    'PROCESSED',
+    'COLLECTING',
+    'DELIVERING',
+    'DELIVERED',
+    'CANCELED'
+);
+
+
+ALTER TYPE public.order_status OWNER TO postgres;
+
+--
+-- Name: product_category; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.product_category AS ENUM (
+    'Legumes',
+    'Fruits',
+    'Viandes',
+    'Poissons',
+    'Cereales',
+    'Tubercules',
+    'Mer',
+    'Epices',
+    'Autres'
+);
+
+
+ALTER TYPE public.product_category OWNER TO postgres;
+
+--
+-- Name: product_unit; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.product_unit AS ENUM (
+    'KG',
+    'DEMI_KG',
+    'TAS',
+    'LITRE',
+    'SAC',
+    'BOITE',
+    'MORCEAUX',
+    'UNIT',
+    'AUTRE'
+);
+
+
+ALTER TYPE public.product_unit OWNER TO postgres;
+
+--
+-- Name: promo_code_type; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.promo_code_type AS ENUM (
+    'PERCENTAGE',
+    'FIXED'
+);
+
+
+ALTER TYPE public.promo_code_type OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: Admin; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Admin" (
+    "adminId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    "areaCode" public.area_code,
+    email character varying(50) NOT NULL,
+    password character varying(255) NOT NULL,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."Admin" OWNER TO postgres;
+
+--
+-- Name: Agent; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Agent" (
+    "agentId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    "pictureUrl" character varying(255),
+    "marketId" uuid NOT NULL,
+    email character varying(50),
+    password character varying(255) NOT NULL,
+    "firstName" character varying(50) NOT NULL,
+    "lastName" character varying(50) NOT NULL,
+    phone character varying(50) NOT NULL,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Agent" OWNER TO postgres;
+
+--
+-- Name: GiftCard; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."GiftCard" (
+    "giftCardId" text NOT NULL,
+    "userId" uuid,
+    expiration timestamp(6) without time zone NOT NULL,
+    status character varying(50) DEFAULT 'IDLE'::character varying NOT NULL,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."GiftCard" OWNER TO postgres;
+
+--
+-- Name: Market; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Market" (
+    "marketId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    "pictureUrl" character varying(255),
+    name character varying(50) NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
+    "areaCode" public.area_code NOT NULL,
+    "isActive" boolean DEFAULT true,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Market" OWNER TO postgres;
+
+--
+-- Name: Order; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Order" (
+    "orderId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    "userId" uuid NOT NULL,
+    "locationX" numeric(10,6) NOT NULL,
+    "locationY" numeric(10,6) NOT NULL,
+    "agentId" uuid,
+    "shipperId" uuid,
+    address text NOT NULL,
+    "deliveryTime" character varying(50) NOT NULL,
+    "paymentMethod" character varying(50) NOT NULL,
+    "promoCodeId" uuid,
+    status public.order_status DEFAULT 'IDLE'::public.order_status NOT NULL,
+    "cancellationReason" character varying(255),
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Order" OWNER TO postgres;
+
+--
+-- Name: OrderProducts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."OrderProducts" (
+    "orderProductId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    "orderId" uuid NOT NULL,
+    "productId" uuid NOT NULL,
+    quantity integer NOT NULL,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."OrderProducts" OWNER TO postgres;
+
+--
+-- Name: Product; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Product" (
+    "productId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    "pictureUrl" text[],
+    name character varying(100) NOT NULL,
+    description text,
+    unit public.product_unit DEFAULT 'KG'::public.product_unit NOT NULL,
+    amount integer NOT NULL,
+    price numeric(10,2) NOT NULL,
+    category public.product_category DEFAULT 'Legumes'::public.product_category NOT NULL,
+    "sellerId" uuid NOT NULL,
+    "isInStock" boolean DEFAULT true NOT NULL,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Product" OWNER TO postgres;
+
+--
+-- Name: PromoCode; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."PromoCode" (
+    "promoCodeId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    code character varying(50) NOT NULL,
+    expiration timestamp(6) without time zone NOT NULL,
+    "discountType" public.promo_code_type DEFAULT 'PERCENTAGE'::public.promo_code_type NOT NULL,
+    amount numeric(10,2) NOT NULL,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."PromoCode" OWNER TO postgres;
+
+--
+-- Name: Seller; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Seller" (
+    "sellerId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    "marketId" uuid NOT NULL,
+    "pictureUrl" character varying(255),
+    "firstName" character varying(50) NOT NULL,
+    "lastName" character varying(50) NOT NULL,
+    "tableNumber" integer NOT NULL,
+    gender character varying(10) NOT NULL,
+    "isActive" boolean DEFAULT true,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Seller" OWNER TO postgres;
+
+--
+-- Name: Shipper; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Shipper" (
+    "shipperId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    "marketId" uuid NOT NULL,
+    "firstName" character varying(50) NOT NULL,
+    "lastName" character varying(50) NOT NULL,
+    email character varying(50),
+    password character varying(255) NOT NULL,
+    phone character varying(50) NOT NULL,
+    "pictureUrl" character varying(255),
+    "isOnline" boolean DEFAULT false NOT NULL,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Shipper" OWNER TO postgres;
+
+--
+-- Name: User; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."User" (
+    "userId" uuid DEFAULT gen_random_uuid() NOT NULL,
+    email character varying(50),
+    password character varying(255) NOT NULL,
+    "firstName" character varying(50) NOT NULL,
+    "lastName" character varying(50) NOT NULL,
+    city character varying(50) DEFAULT 'Abidjan'::character varying NOT NULL,
+    address character varying(100) NOT NULL,
+    phone character varying(50) NOT NULL,
+    "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."User" OWNER TO postgres;
+
+--
+-- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public._prisma_migrations (
+    id character varying(36) NOT NULL,
+    checksum character varying(64) NOT NULL,
+    finished_at timestamp with time zone,
+    migration_name character varying(255) NOT NULL,
+    logs text,
+    rolled_back_at timestamp with time zone,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    applied_steps_count integer DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public._prisma_migrations OWNER TO postgres;
+
+--
+-- Data for Name: Admin; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Admin" ("adminId", "areaCode", email, password, "createdAt") FROM stdin;
+ecfd2040-3af1-46e7-a6c0-154bfa873ad0	\N	admin@omarche.com	$argon2id$v=19$m=65536,t=2,p=1$YRJwwOqunGl8+HCz4dE/91Z45Ur74sC/YaVC/nEVLQQ$bzVhCiCxjnA8tc7wrw0o04HXZye7BjEExvBw/E7V1x4	2024-12-30 12:40:11.966
+da649e83-9e4a-4294-8a36-c7ca8b7ad5a9	ABOBO	admin@abobo.com	$argon2id$v=19$m=65536,t=2,p=1$YzkwPVHQKDWZTLClP6TYeMiIJzFzXmQGFTdZyY/vMa4$vgmyZMuJ3cRkMhXtpManmgJV05DSa/ZVbOXzdJ1gHWo	2024-12-30 12:40:12.183
+7d1944a4-edd5-43e5-a641-4dcc5baf7803	ADJAME	admin@adjame.com	$argon2id$v=19$m=65536,t=2,p=1$B3u15aIz6Or0qase2MIzg9tjG+0szqthXT8DitaTPKE$IJy51VN0vQQ4rZz7z7ac0ZJ0MpzI2h1Z1PQiTeSEBPY	2024-12-30 12:40:12.389
+83a70ecd-1209-43ed-8745-7ce6f3568d46	ATTECOUBE	admin@attecoube.com	$argon2id$v=19$m=65536,t=2,p=1$GUZhW+VVX54LNbKnBHU8Y36DlFqsNZz/zHn7esX6Amg$JrD0uDW/F6DXfbXEAym6FVu6/3TKMNGtnMN6LnV7Ppo	2024-12-30 12:40:12.594
+8b6acf05-7708-4ff0-91a4-171c8316a7b4	COCODY	admin@cocody.com	$argon2id$v=19$m=65536,t=2,p=1$IWwveLqrhgoEPviTMwo0nGwieCBUXhqU/vyRUJ2Vtd8$sP0VagDWacyhug9dbTr/zLCrlFrxz1fqNY/bo9+KJ90	2024-12-30 12:40:12.79
+a008c229-aecd-4fe8-8f46-a16aacf2010a	KOUMASSI	admin@koumassi.com	$argon2id$v=19$m=65536,t=2,p=1$+beIDJOk47mASIdy1tv6DCxFH5JcofzSGbQOr5orSq0$mnlp3F3aaY/kQ4grQAihlfp7PPYCfqHWIY+Edmf0IjY	2024-12-30 12:40:12.95
+777cf167-57f3-49ae-bfde-669c082c0537	MARCORY	admin@marcory.com	$argon2id$v=19$m=65536,t=2,p=1$y109QqMEgaf5YattlYoBVxFlAMt0cNo/gjieNxkBgdA$ASrWQbrewR4Bf++y1DsmM+1MNeg9LKBwc6YscIMi+yk	2024-12-30 12:40:13.148
+f7d3f511-6338-43ed-9d6c-603cde497614	PLATEAU	admin@plateau.com	$argon2id$v=19$m=65536,t=2,p=1$7Znm59od4H8L4RTtQIXnLC5boyLDnZo1Vro0gUuh6cM$8mseSvnAfwyWoSlvCZ3Hc8AmSOip47Yi0Brv8tsJps8	2024-12-30 12:40:13.317
+a5d3c51e-87f0-45d5-b2b9-118370df6c5b	TREICHVILLE	admin@treichville.com	$argon2id$v=19$m=65536,t=2,p=1$xzuZ3iOBjiBDX+p84O3a06hpXXGo8YCGx49ZPrYR8VU$o7UXMFwNv0ScKM/8iRRpvlJUA8cvXiV440XdsYGNIv8	2024-12-30 12:40:13.52
+a1ede670-90f0-4ff3-b0b1-69152a84d482	YOPOUGON	admin@yopougon.com	$argon2id$v=19$m=65536,t=2,p=1$EM6AMrf6zzss9ZHm3irGRkyD7cMKDEutWjZhK/Ob4Ho$tPCxPU6pLuBW2qnx9LqO9AprV8OcP+/A+zRp2nzPr18	2024-12-30 12:40:13.681
+11c35b31-2ea0-478c-8e4c-d2d06b68edef	BROFODOUME	admin@brofodoume.com	$argon2id$v=19$m=65536,t=2,p=1$xgG9q4nVGDb55g/O6EspCCRqDobxF2QQiTp/klYh6kI$Y5qOSJfTMr+pu28+V/ncY2oMtcJd0KM1BOvEWmMh/+M	2024-12-30 12:40:13.886
+d8455a76-110c-48b0-9fb8-a80a3f04680c	BINGERVILLE	admin@bingerville.com	$argon2id$v=19$m=65536,t=2,p=1$l5ho6lCdWD3AxDlI2QKE/NqWR2thFSr9FuYzElGBWeY$2bDPHI3qjpiPYE8NRZktuX1Qwd3nfhHoeKJrpEK8LQE	2024-12-30 12:40:14.05
+87e813c7-d520-44f0-8b9d-21562b6aff25	ANYAMA	admin@anyama.com	$argon2id$v=19$m=65536,t=2,p=1$xQzrF63VOo7xwu2w8xMb+THavq1kXjcV0dU5Ms0lJ6g$kIiHzYsbAJRR3jNLn50xhv5BwVhxqPF07Nh5z+yhvAo	2024-12-30 12:40:14.414
+5a651125-73af-4adc-8cdb-c08560045c0a	SONGON	admin@songon.com	$argon2id$v=19$m=65536,t=2,p=1$w6zlrUIGKfvuI99nXE4TCW29aCxGRrHF0LRDD10bjRM$0iVkys+xUpWpYid3KrPrMoSMYVe2pS0FYDAuU79ooMc	2024-12-30 12:40:14.614
+cf727a1c-75b5-47c9-8a7c-6c526f6665a6	PORT_BOUET	admin@portbouet.com	$argon2id$v=19$m=65536,t=2,p=1$s/AXgM/z1m6E0ZorGj3oWyJSichmOyF6yt9/yNv6aJY$iJrNAB+tG5+de4NP7Xoao/uRlM3QakB7gAHB/FyA4PI	2024-12-30 12:40:14.254
+\.
+
+
+--
+-- Data for Name: Agent; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Agent" ("agentId", "pictureUrl", "marketId", email, password, "firstName", "lastName", phone, "createdAt", "updatedAt") FROM stdin;
+841aae07-749e-438a-8123-0ad2a0a9c90b	\N	ff48e90e-e3a7-4f5f-8e10-1bfe25962b35	rocktia95@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$0bYZRLcvNH1Z+PQNeH23RnUlq89drWdFrRu1lUo7nsQ$VC4/CPwHBP4+a5zrsGNitosHd0lUpExNZ36HTt/DrEI	ROCK	GUEU 	0709720781	2025-01-13 01:38:34.077	2025-01-13 12:35:01.363
+61e766e0-16e5-4602-b9ba-1d4ccb8d2e6e	\N	d65150ca-971a-4b93-a07c-85070b0952ff	nafigbokou@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$YC4T52dQ5DsPNapolAYhEsrE1bbzpHNQYTYZVFS8DEU$dsL9v3uko2kmMcGkdPfrwIbH2BMwqTupxpBmqFJwF8E	Gbokou	NAFI	0749453834	2025-01-16 15:35:39.572	2025-01-16 16:35:33.877
+017ff0a2-4819-4c2f-b599-b1e4c2a7b1d8	https://api.omarcheivoire.ci/uploads/bdd7c42c-59c5-4860-9e95-a685ffed7628.jpeg	e490354d-3653-4c9e-9d0e-2aaa684912ea	ahouajonasbosson@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$kZ9XEjDq+sY9ufvJMsxyq1qSHeV0uUu+m3gPFgin4mA$hkHQeifDU9VZwTmot650rozcmVP8pcTPr/uKOOc4HY0	Jonas	Bosson	0718383877	2025-01-27 11:06:06.075	2025-01-27 11:06:06.075
+d0b39849-b12d-43d0-91da-da622e9cb143	https://api.omarcheivoire.ci/uploads/9bb5ec31-765c-45f6-9c93-0931ec6da392.jpeg	a7d7e493-58e9-488a-b929-ee95d1ff0a7d	jocelink45@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$lE3oVEu2WTvpwtYl0ZalhhkS0HYMy6Jl+g16iyPR0As$aN+fwMdEjVgNGw1dPeGA7QwwzE6vfdeWTOrI1BCacmc	Jocelin	Yao	0758270438	2025-01-27 13:58:00.643	2025-01-27 13:58:11.839
+5532d032-144d-4220-a4a9-7478a9cb474e	https://api.omarcheivoire.ci/uploads/5756af4c-7159-4add-99ce-b787c9fded67.jpeg	fe85aab5-c515-459c-8c59-e588bf3d6ddb	yannick@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$Da2vVPau02rYsAkwEiFCXa918Ry9bxTmI1FEA+KXGYA$IqZRav1tyj7QPOcrawoWlro2DOuTmJkAn6DRQq8wIJQ	Yannick 	Kouassi 	0556328188	2025-02-01 13:56:50.982	2025-02-01 13:56:50.982
+d233a1bc-cc9f-4a1d-bea9-e11a6c93134f	https://api.omarcheivoire.ci/uploads/dcc28ff7-30e9-48ed-99c8-c7c37b327d94.jpeg	c72c127d-b967-4b22-9672-429e51080268	0707913467@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$5dcLbdF70U3ZHpXvFXYdrmtG6M2P6+Oin/9FfBlojhw$jG28ZdCf7MutS9t0MlrRxt/F3ZY/qfBmUIWr5nxR3uM	Boubacar	Kerr	0707913467	2025-02-01 14:10:25.709	2025-02-01 16:59:52.344
+8223c3d3-d54b-4ffc-b8b4-1b668de34bd2	\N	3cb2b083-c601-4108-acdf-ed3b08f33db3	0787098276@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$vTuMXXHr/2melpu6HCC6NV8aNVOujJSWoXsDLm50vYQ$QwvMxLJikLQRGsWUIavUbTJ6JC5UfzjDSuE5zDND6Y4	ABOUBACAR	BAMBA	0787098276	2025-01-16 08:45:24.465	2025-02-01 17:00:26.813
+0fa3dc7b-9d5d-4ec2-82c9-8cf3b1cc593a	https://api.omarcheivoire.ci/uploads/2f7024c4-7350-4c7f-9cd4-f7022dc70baf.jpeg	fe0a893a-6cdb-43d3-8d7c-65b73406d32f	Ollamessy@yahoo.fr	$argon2id$v=19$m=65536,t=2,p=1$GFumVzfg/iZb1s7oqaa7D1p8fK1w5GdtQuzerGvFSXQ$qtNyatfOp1ipJsX0fpkMdvc7v0NcflRSYvM+tFKgkYw	Djoro Ollasset 	Ahouo	0707080643	2025-01-27 10:46:58.399	2025-02-01 17:05:55.095
+8a9f9647-c1cf-498c-8342-c166e071c718	https://api.omarcheivoire.ci/uploads/e4a8a8fc-bb76-45a9-b5bf-4570e181e618.jpeg	34af3e9f-5af5-4513-8ea4-d13212c04dd9	0544007057@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$5w+rNpMFQdvBwcnNyQbTtIhwrbx9BgiGBGBEHsJ72lI$BybLLUL4RfN8zynXn726lRzK4YRXKY3szihGWBD+GI8	FATOU	SAMBA	0544007057	2025-02-03 10:02:14.405	2025-02-03 10:03:07.824
+ff27ed10-0ca8-495e-8726-54982a4e6846	https://api.omarcheivoire.ci/uploads/40b69ad0-6559-4a8a-b4cf-bcfc5ed13e2c.jpeg	22548f6a-648b-4292-9906-d043c1ac77bd	0799953559@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$VR84kMJPrtUj3V9DC/DeBnqZ8r5fpDqxttjfcbszHP8$Lt8KnYYV+euX8TOkMEU5wbmjQSe1w7KDS9okEC0cqgY	RUTH	KOUADIO	0799953559	2025-02-06 12:31:41.554	2025-02-06 12:32:04.631
+c303b071-6319-480c-806e-5fc55aa7b237	https://api.omarcheivoire.ci/uploads/a200734e-0e2c-48e2-9187-088c233d0119.jpeg	1cab0d91-d7b1-4d61-b41f-2ae823a33cd7	0707489439@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$F6vgbTqEyK0WcD1d17F83G/Cdv6YILsJw2ZNq+5B1ms$PzUATqMSDGE4f1FxGPkBFabEFCbYqpvyd/mPyobehLg	AWA	TRAORE	0707489439	2025-02-03 10:17:28.607	2025-02-03 12:56:23.091
+79cdf84b-db39-4875-a22b-41d56994ca4f	https://api.omarcheivoire.ci/uploads/ddc47344-25bd-4207-a8d2-37381df9ddcd.jpeg	c424be59-77d9-4ce5-b1ad-09ba1916ccb4	acoriscup@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$r1LSl+ZLv784KjXtAPeAVzuuALvA5DsU6pnyMeF+TSM$yDpSVQ/uhIBWB1Tr64rodyROM78GR8CbPOc7lz13dp0	Corrine	Agbehoundji 	0705025651	2025-02-05 12:15:43.935	2025-02-06 00:15:57.967
+60ec1339-8476-4993-9830-0bd323945eb9	https://api.omarcheivoire.ci/uploads/2e82b1c3-28dd-4c9a-b8a1-d4fc809aa817.jpeg	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	boinahaoua@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$+UR/f6I5VvN386jThoKsy08m04JKPZMr12bfuiF4Sus$9/d7GcuJOEEZIz3l4aZQvglvNfIbJeJwBanYS56W1xY	ahoua 	boina	0140395217	2025-02-06 11:52:17.748	2025-02-06 11:52:31.287
+48302193-6c33-4f7d-895c-1ff4ab267efe	https://api.omarcheivoire.ci/uploads/cbb1d246-35f3-4ed2-956c-e0076ba5b58e.jpeg	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	0546201549@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$YdOzetpvgn50LAOCySNPsCVkoEXO9126FYxYXFGceEo$mI+d8M2pDDPs2N2RRyDd/eGCAICvakTgLhvdOT2+vns	 SAHANATOU	DABRE	0546201549	2025-02-06 11:57:29.587	2025-02-06 11:57:47.215
+41f8412a-b5c5-4de0-bc55-ed2df3c19172	https://api.omarcheivoire.ci/uploads/594a757f-3501-42f8-a117-77778bc87f33.jpeg	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	0545927771@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$Dc2oasWNytUGoqaJs3kKvUp6UWTbw/ixG+N9pjkSZag$jtHuusB4Yab605GOkIoAyNALB/dEEmngohE7kvwykGs	thérèse	yabre	0545927771	2025-02-06 12:00:20.251	2025-02-06 12:00:40.255
+bc0c60f5-c5a4-4d4c-bbc7-802b2de146a9	https://api.omarcheivoire.ci/uploads/0834e80e-16df-4b76-8548-d9174f52a63b.jpeg	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	0759451699@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$ItAE04IZzQNI7RquBpTx7QcBlbzdMrx6OWXvnd4M13w$1bO2VhACbHi95sPOxsGlOtChR/4qFvwyCqYA1VFHlDQ	MIBSIBA	OUEDRAOGO	0759451699	2025-02-06 12:03:39.951	2025-02-06 12:03:39.951
+f92d2d10-32fa-4118-926b-189166cc5528	https://api.omarcheivoire.ci/uploads/a13af9d8-7b9b-41e9-a08b-ba6486ff7ef8.jpeg	22548f6a-648b-4292-9906-d043c1ac77bd	0778142777@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$jHEHD2YKFq7/Vl1b89KYJ/Io3XziiTHPhGa5FsRy8Us$HPlWDLigthkuW0Z7kAf/w0w4djdBYMStvIxgnjPk5Rg	SELE	KONE	0778142777	2025-02-06 12:15:02.044	2025-02-06 12:15:16.581
+80247806-d850-4a2f-85f9-7f279867d932	https://api.omarcheivoire.ci/uploads/02c2ca54-44c7-450c-85e4-2a33061bbe46.jpeg	22548f6a-648b-4292-9906-d043c1ac77bd	0152308101@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$eEeXP9D/L0BL7H1aQmp6O12c1lBc13RuoAWgHtE6aeI$0l6TFkR9H1Jc2SYjTgwxmJIrgDV3fEcwkSOSWqU+EuU	 SATY CLARISSE 	SOUMAHORO	0152308101	2025-02-06 12:18:36.59	2025-02-06 12:18:36.59
+f3d90608-2355-4fb6-b6f9-38f07de31957	https://api.omarcheivoire.ci/uploads/d848d195-da5a-4f02-b681-1f6aa929806d.jpeg	22548f6a-648b-4292-9906-d043c1ac77bd	admin@omarche.com	$argon2id$v=19$m=65536,t=2,p=1$rawSIimYbUvNFyihNObJGcsOPet+FGiIVnVJmhchNjM$Bb53XGZSvwN+ewQOH55ZsKAcahcXZ0noMaR7K0wTMY4	 Mariam 	DAGNOGO	0798592957	2025-02-06 12:22:02.568	2025-02-06 12:22:02.568
+ff054d28-5a8b-4a73-a5e8-245439616824	https://api.omarcheivoire.ci/uploads/84aeb4f6-6faa-4176-a1d8-202fe4631c90.jpeg	22548f6a-648b-4292-9906-d043c1ac77bd	0503303309@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$f7YQovvRs5C+0yVkDXjQ+dmyddQa7f+4gSXCkTCgJeQ$+72/d96S4Q52ji0K95DPqsPr0yZGvFzEwd4jf3v2MYY	 Lou djanan marie jocelyne 	DJE	0503303309	2025-02-06 12:36:12.773	2025-02-06 12:36:48.879
+5a63402d-e75b-42d2-87c8-e29e18c19754	https://api.omarcheivoire.ci/uploads/a68082a3-24cc-4958-871e-e773bc5368b1.jpeg	22548f6a-648b-4292-9906-d043c1ac77bd	0747475611@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$G4+HXW/n/bbDNu03Tpc0YrfjQpL1xf1sP8j0QpjtcMo$HAklWS0PhjwsbMdYC2+P82+mORvNeqGARmGEt1rA1Wg	Madeleine klintcho 	KONE	0747475611	2025-02-06 12:39:56.009	2025-02-06 12:40:22.597
+b3170c1f-2952-4eed-b701-b3e394d3b030	https://api.omarcheivoire.ci/uploads/4c1fc43c-6891-4ca0-9bea-0b663183eda3.jpeg	496cda43-f208-45d5-b15e-d640673ad462	0757544775@GIMAIL.COM	$argon2id$v=19$m=65536,t=2,p=1$87MtWmUiaX6LFi7NMnGVycjklVWNyoEVRHIqUAXslgU$8EmYhxok8ZYE6LuaoLFGlH1NN6xIW/3v5y+BvquCnv0	ZEMPALIGRE	ADAMAN	0757544775	2025-02-06 12:49:25.244	2025-02-06 12:49:41.304
+1911a8dd-86d0-4c4c-a1a4-e33070760bb0	https://api.omarcheivoire.ci/uploads/ddbf533d-45e2-4ed6-8f99-5c4594dc5234.jpeg	f9d5343a-8ca2-4d65-bffe-3aa902087e46	marinechriste08@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$mQLtrqgDel1l/9pbaQ1AhcPKpdswDpmfuO0YpKemXz4$HMLYy7BZyjqABimNKVCy9ZFusNLAoamj0GPClMAjQlw	Marina	Gnally	0708400354	2025-02-10 09:50:15.395	2025-02-10 09:50:15.395
+a6ab619c-c125-4008-8c8e-f6b52fc3c4e1	https://api.omarcheivoire.ci/uploads/91a15e1a-0bbc-46be-aba8-bae186cd1548.jpeg	42d585fa-c5d7-455a-b80c-c5e8d560e891	0504370276@gimail.com	$argon2id$v=19$m=65536,t=2,p=1$OS/5Mly6v4j2yKU1BM3RN80cqlnQygqtOtuJDyRkCW8$pSHTFFrCHlvWp5/SaEi51DSqCP9ttBJ+WEGLcDYqRVM	KROTIEMA	KARABOUE 	0504370276	2025-02-13 10:50:50.689	2025-02-13 10:51:12.959
+d80f7f20-9baa-42b5-999a-7feab87b7086	https://api.omarcheivoire.ci/uploads/541a160a-d55f-4c58-bab0-c9385523a703.jpeg	22548f6a-648b-4292-9906-d043c1ac77bd	0504170444@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$40WHxA1WlDbfWWvxqo6Yyzeuw1n4pHHrqMy/YdO1qVk$A4bgP2PCYHqlpGNBP+h3tTHpyYvfthqOfj7+SXETbsU	 KEMSSA	 SANGARE 	0504170444	2025-02-13 10:54:33.403	2025-02-13 10:56:03.394
+\.
+
+
+--
+-- Data for Name: GiftCard; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."GiftCard" ("giftCardId", "userId", expiration, status, "createdAt", "updatedAt") FROM stdin;
+g0fLSsiZ22xbdtcGhPo5DMHa	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+AHPo0eQxjo6BQBoylmww2RTo	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+EoJilbA1LQKfAlFSzVDLjnSr	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+YG5k6zX3xOhL1GmLOniqRJDa	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+hyGePKNWXM5rn1XobgBnmRxI	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+yKE49ZSMIRC6CZJ22JEMdk4X	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+LjGP4TQAxc1aRFEaWauoGUVk	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+nWMCC0FAevWoDbVbGWG1Qqmq	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+SWaO8XFnNzGuOwSmuS77lFdV	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+s9QL9e8UaBGBA1P4w2mk4Gaj	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+bNrdR0YG8UONbSUe41Zr28Gz	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+q9cEnd0x3JtOF1LznIxg9dEn	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+bEpwMSrnKZNGcOR8u0TGOpQx	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+v2kGzRRVqPzRexEWo6IN9twQ	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+tdbu6u5t7aqN9P6lXB3gjo1W	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+n2ZqaCmkpudvyBiRWPYluxO7	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+dlha9E70ETvjj1dKyA4VOUto	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+yT2uto0QjVnl3qXtUV5Dtn18	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+Yxdn1YRVXJIZZ9IHmQCNaDYC	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+zUEqSMZhSpZACz1HfttCiKbm	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+TrukT3WWVqMM5a6yDe79T2K0	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+kP5qfKHbNROCJMecWzE1Uqve	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ZpcIsofSTMUZwbNvNIJKoqsh	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+24ufnp3ZWTr5tfzMPStSLaUC	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+VtX4h113bZb9tDaVTv1Qvd1d	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+QhW6GH7zXYYORA27KSDc3q6n	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+Mwo0PLVWA8z2WD8ft5N1TeI1	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+y273LwaVQfmCky2Tr4OtJQA5	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ooE9iHIrN9ufMKT9j7dQ94UA	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+rD9locTyDEBqW0UwYGBDN4lc	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+CUIHQKvQ47sy2ze04oIAp4Z3	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+jLJph3FJwo95iosJEBXJVHlM	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+bGkyFI2urc3hi504wAFu8H9t	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+zYOf2Av6g0VbaR5KryT7ocQh	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+dvrOwvFtFjVsOT0nCNOyl1F2	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+LWoWuE9mKbRpFU3LQXOnpsV8	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+C0MFHph2iasM2mUTCm8u0ozk	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+TuBmpy1TgM4C2GdD4k78L0N0	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+mzGgIzMIhn77n1nIefMC8SXE	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+S75Ag9apVJXsIiHC9YhFEhmG	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+bIHQYTBKlYxorlYl66m3OWWJ	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+eZDjXwXHQEooP0PD4A5g2KFv	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+c1cq7Aj2CAWToen2v3nWZuwA	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+eK9jWbesAJH1fmXaqSrnHRe4	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+IfovMxmrcUmjHwP2Nteq5QQJ	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+kJMJj4UhbDM79YRWj1CjkOcL	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+7iBP0RbdEX0mmgugDv6GZsgp	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+MpYiSbMw2EBJiKgYmgSj9XEH	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+nDxqMwU2gYPfawg63d75ctwq	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+yZJUvXJLoX4a15TT5jTnIrcD	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+qG0mwBAm4TzZyBzkSBPKVpoa	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+bJRQh8k8uJcUbqCdUPdIz5qT	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+quaNmGCeo6RMe0xXzympBNpB	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+avq7I4kwS1uHils3LyApDuiA	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+35L6S5HUuBRsnesAy1LPcpMd	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+F8snS6GKVrqZUtN6ujzl7stG	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+HFchkDLXLUnLXmvvv1RvZVud	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+SoRgOwobE7iMCSNj6O3l0eJJ	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+GgCzBF4xMPzDhuz5fKUdPn93	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+nwkieHZPG9CY8TaN3XmLqtuf	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ZhjN1YI7S3RqlYca4WymnuVy	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+XwN1yOk8ESD2QxXZO0qxuxRI	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+i0rzOuLLwVw2PdKMEBRLcmmc	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+Z4t5OcxksluuY5FY4whTuqNv	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+9jVx3X9XYcq738FjDYbrtIv3	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+7NyXSAWXwsOiVdXVSUvvHRKB	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+n2V98j7KGrHRU8FkuysettFi	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+aSdAFk5yPOjOsBK3CA8qGHKu	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ULQOBilYn1qRHa5CzacXttiX	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+x073Ars5NhqREXYghNTvVBlB	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+q6DgAGVrBHW0TgG7V1GtZCty	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+vwgpnme0htwnael88ZDeeUVi	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+aCI7zFbTKjBs43bZTRrwK77h	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+GEjP5YKOpg0zBaXybm5eXX8K	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+nlWEwzoM4yOzRJjFmPLwHLHH	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+6SEAc73BjF6nVtCjOJUmBVNF	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+q7WWmYFvpMfRSJh1DTzfQu8c	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+JI5nJsIq1Vt7QdEZHjQdw8Cm	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+k9IWidEgkBHSFr6qTVJ8VvXc	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+1k6iQlB9qVzcdt7qG2a8or6S	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+u9S6KONqdRqKm4lwELaFDZj3	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+6I49iPqIhtUWddKskThDECMP	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+8HnbUzuhXwQb3cZkka1sexaE	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+2vnQ8Sx9Ktcv3OEgh5Dedei7	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+Ez70VqUfUyytmToK8fI5nrmV	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ZO5Ca1vojt3cBfksTsEjoR1l	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+XrVpvu10TyhhNj49IYkImxZy	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+hw3gc6FA6oTFcRyZ1IIsImGh	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+acsJOxN1YEkprPBXiC6IrF8f	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+AVhzukoCcUJhqMaMFTQ14B3X	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+0HuabTKy8gcNip5tfVDt6uWW	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+vq0kbVrhFTJlGd92G7iFkmRh	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+I8zoWvl24SPCf3UOdD6yg653	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+i3AnceXuoJumL2RfOfCL84AM	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+0dOYiUj6YnOMFS4jUwCIYsSd	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+OgO90JVn9effnLb1Tzh9iDQ8	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+CuK3RmTxbmaDvW4gpna1BCBI	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+fhPK944tQwg3YeVUKQAM7SSU	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+CDscxqOdWRxoygDosPe6i4ZH	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+KoeLgzHbiXVd6AuPMj1XGoE1	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+D5FN5u3in5Yo2HxgwPJT3ANP	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+aK9dvEs8z4vZlrbazxXYwabe	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ErNVG7lF9HQJ0PBZmsZHjhmO	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+O9cmuIGunsokYsualDLlxLCZ	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+7M8SByqQiQl4fOFvObGiREF2	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+h8Y8j9i2VILIMjPWXwEwtCV6	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+xDpuTUumyUarjZZAkxMmICMF	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+AeJuac5yoq4JPQLBGUE6Pwbv	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+0b1jmpiLgwdz6ThwxPG1t0kF	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+XpJnMeXJwjYMuPPmRXzUPfGv	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+SBZ10JchGeiCb7xDM3d2iGYT	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+PbDBYQ4bZDJOlArBdjfcHhz5	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+t5fvpK66pkyH6orRlvjo2K1F	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+IGEa0fy4sk64jY84hh6wOJtb	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+gDqoKBSCMILgK9BwM4Sgb1av	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+EBL8cae6q2UHRUQSLvNUctIH	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+AUdT6suTnLILf1D4Y0zu9I1b	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+OziWFmtPqQDOzJURhD6fLfKT	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+CGiKRODSdiHbRLSoe8ZyF2LN	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+8ugKodmHn9uqt2If4nkaLJjr	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+w9dvK4AC7Rh9yh8m9ogiWLO6	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+193GXubgdoA2CP3SwUqxGHt5	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+22NH5VCUmF8FRx5itNLfDm2D	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+jJTT418SMvQB8jjLGjhbDTp9	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+1jFfthnadjdzrergwjE30kDA	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+P2Jw6GVEe9hiYQAheWdRK6is	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+UxWeUpEZga2ROKAymTEQvcV8	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+asLJIgiT8Je6Ku9wVQqBLcq3	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+kkvNmp5ufTKNvTgn5NU2gcOI	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+T16QMMFTCEwqZH4X9suC7rop	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+iddHmHfPtTYNVm6tOHv1YDO8	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+56DlKGobUxwJf26WTUyDksuS	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+MbRGyq8WEF2OsOYyY5c2Vy7Y	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ElFst9FgbJsGfT5b4Ek49OPf	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+NUeByJ5OTWeyZsKwxovo1ekh	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+luB8KECd34OIqkNKWiyYPxOG	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+JD29heLC80voPi2e1AI7pn8w	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+bH6nLzESU0xXTgSbs8u1ZnO4	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+lKoyROkhNoR6AThVSJIf3Cw2	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+wvhwlhOwvfZI4XJA9QUb9EcL	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+3rOcJd4Pyn7Wc42uXCUspfGE	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+zxVl6zAVTy0P81TNA0GETO7x	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+bM4h6qqiQm7E1Gp8EORZ2iyz	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+bWjYq06R2pjwS6ZegNqp2ZX2	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+JMkmV0oypWgkmkTkVNdaVg1H	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+EfOKEcideXwO5Vp9AelswaCr	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+6vSCVhUDVxzsphWVWbdfjA2X	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+4CNwOOv5hfGZkiPOTURJbY3G	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+tf2yENlxTGV4v8A7yaHntduF	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+jnuoDFqKu650tXFUf95g4XEa	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+n1DTLxkzyCynHC3QPziMfX04	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+QagngTU3DpdQRWvyrchfkWw9	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+CpT9iat0RN2urDLy0NUjoyqj	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+OF7XIcJZK5T2ZR2VhERRuueC	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+b8oBYEyjg4RqCFWuJakILeon	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+QVMuNC1lwdsWDLwV6nXV5Ghx	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+FZ5pYr4ESv1jOLKAVBNO6y34	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+HFMY8tZm5idI40C4MSJLqchQ	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+aYX9rXhFBRYlzHUXpe37UyT5	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+gOqLNqiFdgLe5roHkKG9aEC6	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+fpyFECIhT4XDM6R4XRkhPcGL	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+MtxzFDKZNz8P29q9eLglIo9o	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+QQzQWvm9r6G5hyi7fMoNjRfc	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+VUYrniNuhBo5WwTuFAEFyrWN	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+N8QGZ3TJVr6LBjG8lRWbW8mG	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+kut0685qG5XJ4gjRviZplzBD	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+hEsg4ELUjFyjKv044A4rVaGS	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+IQhp8Vjsn7rqeryFPJxt2csz	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+YzxJJyIUrbIGcy4cVYeTsiMk	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+PkIef937RFrq21qhMoZbduLC	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+WDgIeCSSNkkDCpzg7NmLpIdL	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+jyrLFB0yQBcnhFJLcltf3avS	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+r7w86fgzFX0ZWpN6Hc5WzZM6	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+9G7VimrNFEQ5Ggz87dJIw9S1	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+uXxJKVSFNDKd67gfu3LULuhM	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+k8X2SUrmm46GGbOyAU2psQoL	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+RRhGNJEBBqgdy6qgQaOobAoo	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+AFsRRuXbN8QTEBvRSTebo1n7	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+IiWN51b92klk3wAsfXw9cXjq	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+LJUamFUd7POsbvpF0GdF9lH4	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+uY7gxKOM0wxAqxgr3N6St0qR	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+tmYXaO65R4hoadNv9e6IF3fR	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+2MQrIUcqpXmEGlktcZYQqOdX	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+KD0I1fb7cRMnXXJ01TFxqmFS	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+YypPsk4NRjrKPh1noxeX14bC	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+4n2q6DyzbnPzIofT2zJkTIpr	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ekFLJKQXEhtn1t2W7Q5v9YfM	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+Ogo6c321qDjLPzr62uKhAn9e	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+MgInIqKp63sq3rSvWVLkatpa	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+YXyID6gpIBU8p1zGemyWZtN2	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+bJlUuBwSPdv0T10yjItWT1J2	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+YqRhongYBGTpdLTpLJ0yVYi3	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+aAM2OR6skeDZQyinCF6fY2dy	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+qKUMUksIsIIRe8kIoOiyGGML	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+o3xtbEUkzUdHb8u0USfOz6tq	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+BKCWZZNN2gw8IH0FT0Ea6qCz	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+usdTbEZHFxG0eYqHvStLjaga	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+40sAAE0XapXN9BskC5cXGBFG	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+Gyx8TgMimF78QHSM4IXBl3xh	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+Zk2Zk3Av0kiFptukRkh9Ptvr	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+WUaxTpsUvI8UoTlMQ9fhzPWG	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+m2jEsh7iapxTULt31Bv3gNMX	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+OTHmKeOe5P5IVEq9PYqTxFDh	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+09IV0Gl0N2pTPWULBdmw1LHi	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+5hJYb2ZBEmeeHCX1qxdCtLvI	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+HpTY154I9i4xPDAC2tW25uPS	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+8PYGXpytyrrSup10I90PUh1T	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+WSmxEMjF9jszZYW3VXHoDyri	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+kxXNZJoykAUojYOrxP1u8W9j	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+eAmjd4u2YRWHgZ61yYAKViwV	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+3R9iDnWrMkrvMWQnzDbDmxY4	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+mPQ9m47jcgndHAzmRtg7D8vk	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+d7O9nWKZx5u0gJjumZmVbgch	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+JEXVtnvIvjzyEF7FrENI3bo3	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+3xDJ0RhRTZD9jMMtC3LelEG9	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ZAXJUMlLzxnMmoBJuV4r4ad4	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+4nuI0yIstJJqwwiE1giJYwvB	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+jRkP5gQ7wwdqwPDnfLSubg8D	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+2EtHIxxzCZnC9I1C2CzBYjPa	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+6SSMxjADcpZzgdOvuCbTT5pS	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+zbRxdtYrsPIbwunxEdp7s8LR	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+iX5IKYPaS1FFEKkIq6ukePZr	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+vxLx003BSxfmts05KGalLPjx	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+cGjQTkHWXelhSAaW9Io3AEvq	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+5fQMTmM0VsdRI6koq4h7e5Z8	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+Chd9XPp3K5LTJME2t2zObepl	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+tiVtfkSflTbJeNFSArS9hnC8	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+M87SahUxmcdVi235cha0tIli	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+q26wLd7SQmFtO1Ne12cEAtRP	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+EdhXq9QwGuGhq4P4dmsonif3	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+ITxHwq0JKA0MVdLxkiP4Eu2z	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+OuogzbpO7ccBocdU4994Fpjj	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+JYFwZQ4I6Py6isLJ41F259P5	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+m67jEtZpNyLgYzKUVi23GdIY	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+O2Ce9Ixu6u5RoC10KoHKPReX	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+SiphDFlnZ6CqMlndnkT9DPJT	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+p8VhhH3QJUDya7gpONWuCdDn	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+WTyi8cP3k3IUGXEt6CbArqsb	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+lpKs8FsTaDIY6VUcRctfmsfD	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+p0GP6nYPQztUco3RJXT3Ah9m	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+rnnbbCgmuljVHgdDbgsB494g	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+AFAqxSAu7NiBJ7HdkcKQPfaW	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+MM1HNHvWE0ajtXlHWyrV1Q19	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+FAbCJbPDogBmcPAufmo8pHBk	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+b5AbHK4TNLJSXlVm26TonDDC	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+nrWkvaZh1UPpDd47zKE8JvxY	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+WrntD9prPuy3KrMUtpMAmic8	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+5mZF7OW02idpcu8cxrNoDkbX	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+6P2r4302HA5YpKSCFlm9clXQ	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+qi6OPJuPgcN97HjEzuBIor90	\N	2025-06-30 12:40:14.617	IDLE	2024-12-30 12:40:14.629	2024-12-30 12:40:14.629
+\.
+
+
+--
+-- Data for Name: Market; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Market" ("marketId", "pictureUrl", name, latitude, longitude, "areaCode", "isActive", "createdAt", "updatedAt") FROM stdin;
+a7d7e493-58e9-488a-b929-ee95d1ff0a7d	https://api.omarcheivoire.ci/uploads/5753fcd3-2a64-49ab-8ca5-aed0529dc345.jpeg	JIREH business 	5.3203625	-4.0926094	YOPOUGON	t	2025-01-27 13:51:55.882	2025-02-01 16:56:49.261
+ff48e90e-e3a7-4f5f-8e10-1bfe25962b35	https://api.omarcheivoire.ci/uploads/024be32a-1fe9-4262-925e-d0ed5571d0fe.jpeg	RIDISSI COCODY	5.40968	-3.96668	COCODY	t	2025-01-13 01:34:45.776	2025-01-15 14:37:04.57
+3cb2b083-c601-4108-acdf-ed3b08f33db3	https://api.omarcheivoire.ci/uploads/1286855e-ceb5-4a45-a1d8-3e45111f37eb.jpeg	LE VIVRIER	5.353171	-3.924717	BINGERVILLE	t	2025-01-15 18:42:32.718	2025-01-15 18:42:32.718
+d65150ca-971a-4b93-a07c-85070b0952ff	https://api.omarcheivoire.ci/uploads/7e15c758-4fbc-408c-bb90-e43ef9218e69.jpeg	POISSONERIE BARAKA	5.350385	-3.975576	COCODY	t	2025-01-16 14:39:24.76	2025-01-16 14:39:24.76
+8e13edb0-5b4f-4bdb-b209-4fa88218e12b	https://api.omarcheivoire.ci/uploads/4dfdd50c-f7aa-45aa-a17c-11ab20a0c460.jpeg	Boucherie Alade	5.5396421	-4.003303	COCODY	t	2025-02-06 18:02:28.96	2025-02-06 18:02:28.96
+ac7301a9-d0b1-477b-be1b-afc9644c1b1e	https://api.omarcheivoire.ci/uploads/2f834dcb-1792-495d-b788-9a3a9aab5914.jpeg	Épiceries Rainatou	5.395571	-4.001638	COCODY	t	2025-02-06 18:11:21.57	2025-02-06 18:11:21.57
+86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	https://api.omarcheivoire.ci/uploads/fa1e48b1-918e-49da-b0e0-819691b059ab.jpeg	Marché Cocody 2 Plateaux	5.366269	-4.000766	COCODY	t	2025-02-03 10:06:50.473	2025-03-26 06:51:21.118
+e490354d-3653-4c9e-9d0e-2aaa684912ea	https://api.omarcheivoire.ci/uploads/e426d0ce-ebc2-4c81-b430-63b6528507bc.jpeg	Le paysan	5.290453	-3.968785	KOUMASSI	t	2025-01-27 11:03:57.845	2025-01-27 11:03:57.845
+22548f6a-648b-4292-9906-d043c1ac77bd	https://api.omarcheivoire.ci/uploads/8ace8f23-ad5c-451c-b84e-c3f5528e36fc.jpeg	Marché Adjamé Williamsville 	5.365898	-4.0206068	ADJAME	f	2025-01-25 16:13:34.163	2025-04-04 11:01:30.74
+fe85aab5-c515-459c-8c59-e588bf3d6ddb	https://api.omarcheivoire.ci/uploads/6b696e40-df4a-4871-82b7-e46598670bf3.jpeg	YAN Ferme 	5.3720875	-3.9313594	COCODY	t	2025-01-31 13:59:45.703	2025-01-31 13:59:45.703
+c72c127d-b967-4b22-9672-429e51080268	https://api.omarcheivoire.ci/uploads/aefcde5d-3ad0-4d1b-9555-f75147897ff9.jpeg	Poissonnerie du Vallon	5.3647267	-3.9894309	COCODY	t	2025-01-31 15:54:38.807	2025-01-31 15:54:38.807
+496cda43-f208-45d5-b15e-d640673ad462	https://api.omarcheivoire.ci/uploads/973dccfc-feff-409c-a840-0f6dbf2c9fb6.jpeg	Adam Boucherie 	5.3690311	-4.0012651	COCODY	t	2025-01-31 16:23:54.813	2025-01-31 16:23:54.813
+1cab0d91-d7b1-4d61-b41f-2ae823a33cd7	https://api.omarcheivoire.ci/uploads/b30c0800-45d0-463b-805b-4381409559cb.jpeg	Poissonnerie 	5.3745565	-4.0255816	ADJAME	t	2025-01-31 19:52:39.25	2025-01-31 19:52:39.25
+6b15a953-fbd9-4b7c-8ca5-750e64c183ac	https://api.omarcheivoire.ci/uploads/490e2e5c-c8d8-4e27-8016-40edcd081ab0.jpeg	Poissonnerie La Mer Bleue	5.4012465	-3.979564	COCODY	t	2025-02-06 18:20:57.026	2025-02-06 18:20:57.026
+b5b2cc19-993f-480f-9a60-1a95e7360b2b	https://api.omarcheivoire.ci/uploads/d7c81547-6db2-4098-a799-393b4b6453ff.jpeg	Poissonnerie & Boucherie Fanaist	5.394508	-4.00059	COCODY	t	2025-02-06 18:55:15.263	2025-02-06 18:55:15.263
+42d585fa-c5d7-455a-b80c-c5e8d560e891	https://api.omarcheivoire.ci/uploads/79bf9510-625f-46ab-b519-99909f0b1d0f.jpeg	Karaboue boutique 	5.411617	-4.007805	ABOBO	f	2025-02-06 17:53:34.169	2025-04-12 12:50:03.011
+1aa093d0-bd5d-4194-9204-1a9c6a787676	https://api.omarcheivoire.ci/uploads/e908428e-cb3e-426e-acf4-2227c218b66f.jpeg	Poissonnerie chez Carmel	5.4017629	-3.9795161	COCODY	t	2025-02-06 19:06:35.631	2025-02-06 19:06:35.631
+db17b389-d426-45c6-9de2-e4dc0acd4816	https://api.omarcheivoire.ci/uploads/22f41f9f-770d-4970-9c6f-3b0723df18b7.jpeg	Poissonnerie & Boucherie chez Dok	5.36728	-4.007397	COCODY	t	2025-02-06 19:13:23.19	2025-02-06 19:13:23.19
+80036522-7fd5-4c12-8649-d3fdab0ea3a0	https://api.omarcheivoire.ci/uploads/980fc010-c22a-4e2f-b488-9403f09f508a.jpeg	Terre Ivoire 	5.386515	-3.923096	COCODY	t	2025-02-08 13:18:32.373	2025-02-08 13:18:32.373
+fe0a893a-6cdb-43d3-8d7c-65b73406d32f	https://api.omarcheivoire.ci/uploads/f8d499d2-6a83-4c8e-96e6-20522d34e495.jpeg	Djoumgblé Ivoire Abobo	5.451478	-4.013652	ABOBO	t	2025-01-27 10:43:34.431	2025-02-09 08:48:19.899
+34af3e9f-5af5-4513-8ea4-d13212c04dd9	https://api.omarcheivoire.ci/uploads/3e738a24-a67c-4d28-84fc-7715232d50fe.jpeg	Épicerie Chez Fatou	5.3115452	-3.9587351	KOUMASSI	t	2025-01-30 14:56:57.47	2025-02-11 11:15:39.987
+c424be59-77d9-4ce5-b1ad-09ba1916ccb4	https://api.omarcheivoire.ci/uploads/edde145e-cda0-41da-bba6-f1d6d92c74b4.jpeg	Fait Maison by Coco	5.34613	-3.969712	COCODY	t	2025-02-05 12:10:42.155	2025-02-16 16:10:02.133
+f9d5343a-8ca2-4d65-bffe-3aa902087e46	https://api.omarcheivoire.ci/uploads/5da66abb-a532-4e81-8cb0-1d43b82936ba.jpeg	Épicerie peniel 	5.390212	-3.929751	BINGERVILLE	t	2025-02-10 09:37:45.69	2025-02-24 14:56:33.111
+\.
+
+
+--
+-- Data for Name: Order; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Order" ("orderId", "userId", "locationX", "locationY", "agentId", "shipperId", address, "deliveryTime", "paymentMethod", "promoCodeId", status, "cancellationReason", "createdAt", "updatedAt") FROM stdin;
+cfc8db3e-5e96-416a-9729-c73fda021502	f63ddc34-e6c1-4bcd-8471-4703b280047b	5.383409	-3.905854	\N	\N	Adjamé bingerville 	ASAP	Cash	\N	DELIVERED		2025-05-29 21:47:20.192	2025-07-10 17:29:47.446
+92aa6797-2ead-473a-859e-7f39590f5d5c	13eac439-fedb-4e34-88ba-940c19aa8e0f	37.422094	-122.083922	\N	\N	Riviera Bonoumin	ASAP	Cash	\N	DELIVERED	Test	2024-12-30 17:32:12.323	2025-01-02 07:57:59.292
+a247584a-0561-470d-a29b-60a0b995322c	f63ddc34-e6c1-4bcd-8471-4703b280047b	5.349310	-3.867610	\N	\N	Bingerville 	ASAP	Cash	\N	DELIVERED	Test	2025-03-02 20:30:52.14	2025-07-10 17:29:54.987
+f5b71aeb-8d98-4f34-b70c-fa00dc3b503a	f63ddc34-e6c1-4bcd-8471-4703b280047b	5.349310	-3.867610	\N	\N	Espace maquis ASSO 	ASAP	Cash	\N	DELIVERED	Test	2025-03-02 20:25:25.527	2025-07-10 17:30:05.279
+1aa8e549-4c83-44fd-a4e3-6bcecadb1a0a	f63ddc34-e6c1-4bcd-8471-4703b280047b	5.349310	-3.867610	\N	\N	Espace maquis asso 	ASAP	Cash	\N	DELIVERED	Test	2025-03-02 20:27:19.15	2025-07-10 17:30:14.074
+cdab2bd3-6391-4155-bdaf-76c82bdf05b1	c0286d7e-754b-4a41-8571-120942e6bca2	5.331429	-3.902926	\N	\N	Carrefour HEVEA	ASAP	Cash	\N	DELIVERED	Test 	2025-02-24 09:11:02.397	2025-07-10 17:30:22.574
+44ce252e-7cb7-4304-aa08-2d163437d860	c0286d7e-754b-4a41-8571-120942e6bca2	5.337531	-3.892226	\N	\N	Juste à côté de l'école primaire portail bleu	ASAP	Cash	\N	DELIVERED	Test	2025-01-31 13:51:36.135	2025-07-10 17:30:33.393
+011c906d-d745-49c5-94bc-c733b8a9647c	c0286d7e-754b-4a41-8571-120942e6bca2	5.337380	-3.892065	\N	\N	Bingerville	ASAP	Cash	b24346bd-316e-4f15-b432-942061b397e6	DELIVERED		2025-03-13 13:15:31.006	2025-07-10 17:30:39.843
+25af6ccf-2561-4953-be31-a9926de8b849	bd5f2c54-6aa0-4e4b-8187-8758c93bdb5d	5.378362	-3.958962	\N	\N	Abobo	ASAP	Cash	\N	CANCELED		2025-01-13 12:43:59.165	2025-01-14 10:58:26.176
+43ce96b7-bebd-45e0-9b22-a1d60991df62	c0286d7e-754b-4a41-8571-120942e6bca2	5.337359	-3.892062	\N	\N	Bingerville	ASAP	Cash	\N	DELIVERED	Test	2025-03-17 12:01:26.827	2025-07-10 17:30:51.039
+7fdfe452-beed-4305-9cb1-1c4cfddc455e	c0286d7e-754b-4a41-8571-120942e6bca2	5.337359	-3.892062	\N	\N	Gbagba2	ASAP	Cash	\N	DELIVERED	Test	2025-03-17 12:20:58.935	2025-07-21 20:17:05.47
+e501c839-2bf9-4544-a446-afb82ea8f334	c0286d7e-754b-4a41-8571-120942e6bca2	5.268880	-3.999717	\N	\N	CITE PROMOGIM ATHENA 6	ASAP	Cash	\N	DELIVERED		2025-07-23 13:31:06.528	2025-07-23 13:36:37.948
+f4f05e66-530a-4e91-a727-96b7df1b8ac6	c0286d7e-754b-4a41-8571-120942e6bca2	5.337359	-3.892062	\N	\N	Hevea	ASAP	Cash	\N	CANCELED	Test	2025-03-17 12:14:11.497	2025-03-17 19:49:44.192
+\.
+
+
+--
+-- Data for Name: OrderProducts; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."OrderProducts" ("orderProductId", "orderId", "productId", quantity, "createdAt", "updatedAt") FROM stdin;
+532c0aac-09cd-4455-b4fd-6bfa0cf137db	44ce252e-7cb7-4304-aa08-2d163437d860	e0adf5bd-a032-4673-8e53-c6006993cc05	1	2025-01-31 13:51:36.14	2025-01-31 13:51:36.14
+c98e8b72-a732-45c5-94a4-9bf2fbdb0e17	44ce252e-7cb7-4304-aa08-2d163437d860	54bdf34e-bd8f-474a-a9fe-dc98d5046607	1	2025-01-31 13:51:36.14	2025-01-31 13:51:36.14
+a69385f1-bbef-4522-9a74-50445a904d67	44ce252e-7cb7-4304-aa08-2d163437d860	f866c4cf-7d5d-4ca7-914b-b101003de8db	1	2025-01-31 13:51:36.141	2025-01-31 13:51:36.141
+df792083-f744-417a-bcd7-731683497aaf	cdab2bd3-6391-4155-bdaf-76c82bdf05b1	d9f54707-66f6-4abf-a27a-bd36ac3d4e92	3	2025-02-24 09:11:02.401	2025-02-24 09:11:02.401
+39c9acbb-05c3-49f4-93d7-495874cce3c7	cdab2bd3-6391-4155-bdaf-76c82bdf05b1	f866c4cf-7d5d-4ca7-914b-b101003de8db	2	2025-02-24 09:11:02.401	2025-02-24 09:11:02.401
+644d151e-fcf5-4fff-8fb1-d40bfe8e38f2	f5b71aeb-8d98-4f34-b70c-fa00dc3b503a	0d28fd15-eb02-44aa-85f2-dd95b6074b2c	7	2025-03-02 20:25:25.532	2025-03-02 20:25:25.532
+692d4ef2-11fa-48ef-b551-27bd321e7fb4	1aa8e549-4c83-44fd-a4e3-6bcecadb1a0a	7f17a62f-d005-4871-8e02-6302143aedbb	2	2025-03-02 20:27:19.152	2025-03-02 20:27:19.152
+f3a9e19d-8060-4202-9c9e-2ca371badacf	a247584a-0561-470d-a29b-60a0b995322c	6d045065-82c5-470c-a555-d842528bbd5c	2	2025-03-02 20:30:52.142	2025-03-02 20:30:52.142
+c708cd0c-f5ba-4682-8df8-52d70d7986f3	011c906d-d745-49c5-94bc-c733b8a9647c	7c59fc90-9578-4779-bc3d-db20bbce1a0b	1	2025-03-13 13:15:31.01	2025-03-13 13:15:31.01
+ecd6fc81-9b16-469c-8c51-efde2788b619	43ce96b7-bebd-45e0-9b22-a1d60991df62	7c59fc90-9578-4779-bc3d-db20bbce1a0b	1	2025-03-17 12:01:26.83	2025-03-17 12:01:26.83
+364b4097-ad41-467a-bdb7-060ad5fd43dd	43ce96b7-bebd-45e0-9b22-a1d60991df62	3672149a-2e1a-409c-b12b-362e1547df6a	1	2025-03-17 12:01:26.831	2025-03-17 12:01:26.831
+b180653c-e777-41df-b7d3-7901ef2dacfc	43ce96b7-bebd-45e0-9b22-a1d60991df62	887f5494-e802-49a9-a717-9eaca98a5c46	1	2025-03-17 12:01:26.831	2025-03-17 12:01:26.831
+812a3ccb-4fa3-4c3d-8240-a48fbbf84d9b	43ce96b7-bebd-45e0-9b22-a1d60991df62	11563bad-2105-43a9-a7ec-e534ebd4fefd	1	2025-03-17 12:01:26.87	2025-03-17 12:01:26.87
+a7438ff6-79a7-4025-b111-083b4ca057b7	f4f05e66-530a-4e91-a727-96b7df1b8ac6	7c59fc90-9578-4779-bc3d-db20bbce1a0b	1	2025-03-17 12:14:11.5	2025-03-17 12:14:11.5
+3e35042d-9b23-4687-b3d0-a452a8aabfc5	f4f05e66-530a-4e91-a727-96b7df1b8ac6	3672149a-2e1a-409c-b12b-362e1547df6a	1	2025-03-17 12:14:11.501	2025-03-17 12:14:11.501
+47fbb878-8c43-4a91-8ff2-deb43bdb61cf	f4f05e66-530a-4e91-a727-96b7df1b8ac6	887f5494-e802-49a9-a717-9eaca98a5c46	1	2025-03-17 12:14:11.5	2025-03-17 12:14:11.5
+3fa5cd92-db51-4af6-96d0-340d3da683e3	f4f05e66-530a-4e91-a727-96b7df1b8ac6	11563bad-2105-43a9-a7ec-e534ebd4fefd	1	2025-03-17 12:14:11.548	2025-03-17 12:14:11.548
+50c29bf1-4d1d-4151-9824-55af36865537	7fdfe452-beed-4305-9cb1-1c4cfddc455e	7c59fc90-9578-4779-bc3d-db20bbce1a0b	1	2025-03-17 12:20:58.945	2025-03-17 12:20:58.945
+7e814401-c94a-4c8b-b4c1-ecb48e0f608f	7fdfe452-beed-4305-9cb1-1c4cfddc455e	887f5494-e802-49a9-a717-9eaca98a5c46	1	2025-03-17 12:20:58.946	2025-03-17 12:20:58.946
+32386aaa-65ac-44ed-a9e1-8d3311c610cc	7fdfe452-beed-4305-9cb1-1c4cfddc455e	11563bad-2105-43a9-a7ec-e534ebd4fefd	1	2025-03-17 12:20:58.946	2025-03-17 12:20:58.946
+9f06f3a5-534b-446f-87ab-6bcdc4673f8e	7fdfe452-beed-4305-9cb1-1c4cfddc455e	3672149a-2e1a-409c-b12b-362e1547df6a	1	2025-03-17 12:20:58.977	2025-03-17 12:20:58.977
+457c86d9-614f-4e3b-969c-2a48b049c5d5	cfc8db3e-5e96-416a-9729-c73fda021502	656da8f8-a2b7-49b8-8d1b-6519bd6c6eb0	1	2025-05-29 21:47:20.205	2025-05-29 21:47:20.205
+57450e21-e73f-49f5-961e-e9a2ea5b73f1	e501c839-2bf9-4544-a446-afb82ea8f334	22140ac1-93f5-4e34-9151-1c25139ce92c	1	2025-07-23 13:31:06.537	2025-07-23 13:31:06.537
+502c5736-d165-4234-9576-3cc3bb7cb2ec	e501c839-2bf9-4544-a446-afb82ea8f334	c3683e0a-687c-4d72-a969-061945149ca3	1	2025-07-23 13:31:06.537	2025-07-23 13:31:06.537
+cb2eaf78-5d8b-4db1-a7a7-aaa0bf38104f	e501c839-2bf9-4544-a446-afb82ea8f334	45b41417-4c45-4e5a-b051-3f89526c7dcb	2	2025-07-23 13:31:06.538	2025-07-23 13:31:06.538
+\.
+
+
+--
+-- Data for Name: Product; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Product" ("productId", "pictureUrl", name, description, unit, amount, price, category, "sellerId", "isInStock", "createdAt", "updatedAt") FROM stdin;
+7f17a62f-d005-4871-8e02-6302143aedbb	{https://api.omarcheivoire.ci/uploads/b2bcd9f4-7c91-4ae4-a734-ededea008d3b.jpeg}	Pot de graine 		BOITE	1	500.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:14:34.633	2025-02-01 00:27:19.169
+c3683e0a-687c-4d72-a969-061945149ca3	{https://api.omarcheivoire.ci/uploads/a321a2d8-4b0d-474f-af62-a3059f933a39.jpeg}	Piment Ordinaire 		KG	1	1000.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:16:13.625	2025-02-01 00:27:48.108
+2cf2fefb-b4c5-4607-a606-6f60817050c1	{https://api.omarcheivoire.ci/uploads/f1f25e23-75db-42d2-95a3-150536e6b3e3.png}	Ail		KG	1	2000.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:18:16.107	2025-02-01 00:28:37.282
+f8b40088-511d-40ea-9960-395790f7360f	{https://api.omarcheivoire.ci/uploads/c32badc1-eb9a-4b16-b8c4-0cefe34fd6df.webp}	Pot de Djoumgblé		UNIT	1	500.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:21:01.691	2025-02-01 00:29:06.369
+559b9fda-925c-42af-bedb-1a98cc9ebaec	{https://api.omarcheivoire.ci/uploads/e3c0ec43-28da-42fb-8cf2-2f158e9fe69b.jpeg,https://api.omarcheivoire.ci/uploads/23e44979-010c-4fb6-b442-51e38cfc2a5d.jpeg}	Banane Plantain 		UNIT	6	500.00	Autres	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:25:17.851	2025-02-01 00:31:21.725
+0d28fd15-eb02-44aa-85f2-dd95b6074b2c	{https://api.omarcheivoire.ci/uploads/435f0100-68f8-4629-bb0b-ea80df744a18.jpeg,https://api.omarcheivoire.ci/uploads/5235d974-b93f-45a2-9055-a2e7e2ab8d74.jpeg,https://api.omarcheivoire.ci/uploads/15f68281-c42e-4172-a890-a6bfb1c7eea7.jpeg}	pate de pistache	Produit bien  conservé  dans des boîtes 	BOITE	1	2300.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 22:53:59.721	2025-01-15 22:53:59.721
+3f634f34-373c-40d8-96e8-bc107aba8bb9	{https://api.omarcheivoire.ci/uploads/877f5ed2-2ece-4a2c-86f5-f352f6f7e2a4.jpeg}	Grain d'or 25 KG 	RIZ LOCAL LONG GRAIN MADE IN COTE D'IVOIRE PARFUME QUALITE SUPERIEUR 	KG	25	25000.00	Cereales	566007ba-33c8-4396-b34a-54acb61b42d8	t	2025-01-13 01:46:15.357	2025-01-14 09:10:28.668
+7408487c-bf98-45d8-9e31-81d32c2011f9	{https://api.omarcheivoire.ci/uploads/0c041a99-9725-4af9-8bd9-7d0d9940d12a.jpeg,https://api.omarcheivoire.ci/uploads/bb02c3e8-a3b5-403c-8e69-176bbe218587.jpeg}	Grain d'or 5 KG	RIZ LOCAL LONG GRAIN MADE IN COTE D'IVOIRE PARFUME QUALITE SUPERIEUR	KG	5	4000.00	Cereales	566007ba-33c8-4396-b34a-54acb61b42d8	t	2025-01-13 01:42:04.375	2025-01-14 09:10:45.966
+4dfb5713-d022-4448-94c8-f291b0737ee2	{https://api.omarcheivoire.ci/uploads/4ac88bd3-7823-478f-bd7b-ba27db652818.jpeg}	Sublima 25 KG	RIZ LOCAL QUALITE SUPERIEUR IDEAL POUR LES DIABETIQUES	KG	25	25000.00	Cereales	566007ba-33c8-4396-b34a-54acb61b42d8	t	2025-01-13 19:04:35.775	2025-01-14 09:10:59.923
+527f42ce-99c4-4cab-939c-a9a35c9087db	{https://api.omarcheivoire.ci/uploads/cdd9d5e3-575d-4b33-874c-5d1df3b49bc4.jpeg,https://api.omarcheivoire.ci/uploads/3be5e3ca-fd9d-4c70-af54-235fe655d31f.jpeg}	Sublima 5KG	RIZ LOCAL QUALITE SUPERIEUR IDEAL POUR LES DIABETIQUES	KG	5	5000.00	Cereales	566007ba-33c8-4396-b34a-54acb61b42d8	t	2025-01-13 19:02:47.786	2025-01-14 09:11:17.918
+dc032a64-1442-47e8-bd43-4c6e5a96bd95	{https://api.omarcheivoire.ci/uploads/2ee36412-c197-47a4-910c-6ee768e356cf.jpeg}	vermicelles	vermicelles maman 200g	UNIT	1	300.00	Cereales	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 22:58:30.738	2025-01-15 22:58:30.738
+70e9272f-69c8-4e05-baa0-09b118d233b5	{https://api.omarcheivoire.ci/uploads/78bb48ae-e169-4759-81aa-9d4939fc8788.jpeg}	spaghetti	Spaghetti maman 200g	UNIT	1	250.00	Cereales	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:03:00.708	2025-01-15 23:03:00.708
+7e03e5db-d3d1-4adb-8733-67bcf0f2f246	{https://api.omarcheivoire.ci/uploads/7ca27e76-19b4-44ec-aa90-8260852e7648.jpeg}	Champignons noir 	champignon noir	UNIT	1	1000.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:08:12.178	2025-01-15 23:08:12.178
+fd3c5cac-1ca9-420e-ba9d-9a773cf2f6a9	{https://api.omarcheivoire.ci/uploads/44d23fe0-c9d3-4dcc-8e61-5cfef0cf5c9c.jpeg}	noix de muscade	noix de muscade en sachet	UNIT	1	500.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:11:31.343	2025-01-15 23:11:31.343
+bb080d4a-f2cc-4796-95c7-2bcd29488d40	{https://api.omarcheivoire.ci/uploads/6cfe3793-5dfd-4115-a48b-eae334010d72.jpeg,https://api.omarcheivoire.ci/uploads/e5a1ffce-6937-4bbb-b973-138d4cf6d45d.jpeg}	couscous	Couscous  bonjourne 500g 	UNIT	1	800.00	Cereales	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:19:13.115	2025-01-15 23:19:13.115
+8c80ae1a-0cb5-44bc-9925-e9f965e54c1a	{https://api.omarcheivoire.ci/uploads/8d5edd27-48c6-42c0-a24f-6a51b3d56aa0.jpeg,https://api.omarcheivoire.ci/uploads/33f40b48-62a1-4f1b-bce4-f0edc74d9045.jpeg}	Poivre en grain 	Poivre en grain 300g	BOITE	1	2500.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:24:52.786	2025-01-15 23:24:52.786
+6ec4107d-57b9-458f-a52b-8b27df56dbbe	{https://api.omarcheivoire.ci/uploads/1a4f9da9-cd0c-4258-99c2-d3ee0e1a11fe.jpeg}	Soumbara	Soumbara en poudre  340g	BOITE	1	1800.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:34:07.146	2025-01-15 23:34:07.146
+656da8f8-a2b7-49b8-8d1b-6519bd6c6eb0	{https://api.omarcheivoire.ci/uploads/f55bb7f6-82bf-4b7b-8737-e89d8121adee.jpeg,https://api.omarcheivoire.ci/uploads/e0bc2d2c-d91d-4c2f-b46e-c9d88ed8497f.jpeg}	Huile  rouge  	Huile  rouge 1L 	UNIT	1	1600.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:37:24.404	2025-01-15 23:37:24.404
+2997bc72-a736-4d5e-bbe5-db8d1e49d0a8	{https://api.omarcheivoire.ci/uploads/0737f9bb-94d1-4889-ae80-6a7eaf3be9f2.jpeg}	Sauce  piment  	Sauce piment  en bouteille  400 ml 	UNIT	1	800.00	Epices	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:39:59.955	2025-01-15 23:39:59.955
+8c12fb0c-8bd1-4545-9cbc-b7342381991b	{https://api.omarcheivoire.ci/uploads/c75c538b-f323-4361-af40-f65c7d25d606.jpeg,https://api.omarcheivoire.ci/uploads/7bf09f30-5046-46ca-822c-5359861efd10.jpeg}	Huile rouge 	Huile rouge en bouteille 1,5L 	AUTRE	1	2300.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:42:32.91	2025-01-15 23:42:32.91
+ac200472-5209-4e6a-ade4-4ccb99184cd5	{https://api.omarcheivoire.ci/uploads/d1309dfe-c0f7-4f32-839a-9cd6707caf6b.jpeg,https://api.omarcheivoire.ci/uploads/c9f4bfc2-b744-4a6d-a4ae-08e3111d0dc3.jpeg}	Poudre de poisson  	Poudre de poisson en boîte 	AUTRE	1	300.00	Epices	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:47:03.48	2025-01-15 23:47:03.48
+f3b1dcf8-f447-4065-80f2-d170179d9ab9	{https://api.omarcheivoire.ci/uploads/3a696f2b-aa53-4914-947f-835071666a03.jpeg,https://api.omarcheivoire.ci/uploads/efa26a62-4e6b-4793-ab5f-a0416dae5b17.jpeg}	Piment  	Piment  en poudre concervé en boîte  	BOITE	1	300.00	Epices	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-15 23:59:05.126	2025-01-15 23:59:05.126
+d597a17e-da80-4d49-ae65-a3107552318f	{https://api.omarcheivoire.ci/uploads/ed0eac47-916f-457b-b5bd-3c59d95f14ce.jpeg}	assaisonnement 	Poudre  d'assaisonnement adja 	UNIT	1	50.00	Epices	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 00:02:44.868	2025-01-16 00:02:44.868
+a10374d5-6b71-4249-a77c-5434d189c857	{https://api.omarcheivoire.ci/uploads/47478154-fbda-49c6-962b-c050e29219f4.jpeg,https://api.omarcheivoire.ci/uploads/e27ed6d4-503d-44d4-aa6c-de9991533084.jpeg}	 tomates 	Boîte de tomate pâte salsa 	BOITE	1	1000.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 00:05:29.723	2025-01-16 00:05:29.723
+a3df5f09-a164-4757-93ce-a0c39c13fb2e	{https://api.omarcheivoire.ci/uploads/75702528-b507-4ae3-b7cf-231063bd6418.jpeg}	tomate  	Boîte  de tomate pâte  top chef 	BOITE	1	500.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 00:08:06.228	2025-01-16 00:08:06.228
+a506889d-eda5-412a-ba42-6bd29b394390	{https://api.omarcheivoire.ci/uploads/09d8eeff-7f89-4999-a285-1f3e941f9092.jpeg}	Bissap	Bissap en sachet 0,5 kg 	UNIT	1	800.00	Autres	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 00:21:49.735	2025-01-16 00:21:49.735
+013c91e4-4f59-434f-abe9-9976a11a140c	{https://api.omarcheivoire.ci/uploads/73395462-6b29-4f66-a90c-c7aaadcdbab7.jpeg,https://api.omarcheivoire.ci/uploads/e1950f7b-f7b0-4224-86a5-a384a6316232.jpeg}	Pomme de terre 	Pomme de terre  	KG	1	800.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 00:25:05.832	2025-01-16 00:25:05.832
+29685a4e-b650-4352-8c88-f7169f91ee33	{https://api.omarcheivoire.ci/uploads/0b51988f-b961-43ca-ab5f-c45712e084ed.jpeg,https://api.omarcheivoire.ci/uploads/e771e4b0-d631-4fdc-a286-e2cb93fe006c.jpeg}	Banane  plantain 	Banane  plantain 	KG	1	350.00	Tubercules	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 00:31:18.342	2025-01-16 00:31:18.342
+d1e849f8-b1f5-4898-a2f7-3196fa270ee1	{https://api.omarcheivoire.ci/uploads/ad7b47d7-fc88-4f91-b6c3-206a1c89c8a9.jpeg}	Oignons blanc 	Oignons blanc 	KG	1	700.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 00:33:46.308	2025-01-16 00:33:46.308
+e0d816a6-18b4-4859-aed8-2e89722ae960	{https://api.omarcheivoire.ci/uploads/6a8c6828-1bec-4441-ac0c-d8be93806f01.jpeg,https://api.omarcheivoire.ci/uploads/6c0c01f0-707c-42bc-892d-bd70caffa147.jpeg}	oignon	oignon violet	KG	1	700.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 00:36:05.733	2025-01-16 00:36:05.733
+c246a30d-9578-4e89-8d42-56de92c1442b	{https://api.omarcheivoire.ci/uploads/4970e132-696f-4ba1-a9df-18f87925d0e2.jpeg}	Ail	Ail	KG	1	2300.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 00:39:38.019	2025-01-16 00:39:38.019
+460eabf0-2d27-4d7c-bdf3-bbfc9ec9d459	{https://api.omarcheivoire.ci/uploads/17bb44cc-23b8-4c7d-be55-851c4b8fdeae.jpeg}	Courge 	Courge	KG	1	500.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 05:27:51.773	2025-01-16 05:27:51.773
+c1124fd0-8ed5-4c4b-843f-8c2a4e9df1c4	{https://api.omarcheivoire.ci/uploads/00866627-95b1-4644-8f12-8385863acef8.jpeg}	Piment  local 	Piment  local 	KG	1	2000.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 05:29:00.935	2025-01-16 05:29:00.935
+b2a3d3f8-f3a5-471a-a21d-b18ce17af946	{https://api.omarcheivoire.ci/uploads/934df86d-dbd1-45f8-b86c-285c1139cad0.jpeg}	Concombre 	Concombre	KG	1	800.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 05:33:40.293	2025-01-16 05:33:40.293
+9667fdc7-5a32-43e0-8ca5-6ef769934b23	{https://api.omarcheivoire.ci/uploads/cc1e367e-b31f-4c9d-8c28-81e8286fe56e.jpeg}	Haricots vert 	Haricots vert 	KG	1	1000.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 05:34:48.843	2025-01-16 05:34:48.843
+d057d703-3d71-46f7-b735-0b8cc3fed387	{https://api.omarcheivoire.ci/uploads/bf1e8801-e25f-47e4-808a-d41e7d9a61a0.jpeg}	Tomate  	Tomate 	KG	1	700.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 05:35:47.51	2025-01-16 05:35:47.51
+a09d7e42-0a54-4ab6-8f04-ef5e243e0721	{https://api.omarcheivoire.ci/uploads/ba30b26b-11a6-486b-93f8-891c75d6f513.jpeg}	Aubergine 	Aubergine 	KG	1	700.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 05:36:52.075	2025-01-16 05:36:52.075
+86b2db42-818e-4cb8-9aee-6cf302e97ec6	{https://api.omarcheivoire.ci/uploads/4d23c451-2cc4-42e7-8956-2233c2737bf7.jpeg}	Aubergine violet 	Aubergine violet 	KG	1	1000.00	Legumes	4c0275f0-8615-4d97-a59e-136d75f51382	t	2025-01-16 05:37:32.17	2025-01-16 05:37:32.17
+275fd323-e6ad-4c4c-8bde-4e6c44d167be	{https://api.omarcheivoire.ci/uploads/b869a051-912e-4b69-94ef-087508be3495.jpeg,https://api.omarcheivoire.ci/uploads/8df06d92-1664-42f5-864d-6b2a07c6128e.jpeg}	Chinchar	Chinchar frais	KG	1	1500.00	Poissons	680588bb-1dcd-4ef6-9a7b-1e32892f6cf2	t	2025-01-16 14:52:03.667	2025-01-16 14:52:03.667
+1dafa3fb-a08d-40ff-a5a5-d165f0a70208	{https://api.omarcheivoire.ci/uploads/9d9ac87d-a4e6-4f7b-852e-9f3e5ebaf104.jpeg,https://api.omarcheivoire.ci/uploads/0f47af48-6bbf-4935-a42c-2745b7ff2a91.jpeg}	Cuisse de poulet surgelé 	Cuisse de poulet surgelé 	KG	1	2800.00	Viandes	680588bb-1dcd-4ef6-9a7b-1e32892f6cf2	t	2025-01-16 14:52:59.495	2025-01-16 14:52:59.495
+43bfc541-dbc4-46db-93f0-e40b70efa7f9	{https://api.omarcheivoire.ci/uploads/4be5c0a3-2c0c-44a0-a2fc-f213e1e46b2f.jpeg}	Carpe rouge	Carpe rouge fraiche 	KG	1	1500.00	Poissons	680588bb-1dcd-4ef6-9a7b-1e32892f6cf2	t	2025-01-16 14:50:08.179	2025-01-16 14:54:47.454
+02c41fe5-61f9-4f87-8ffe-66b143fd65da	{https://api.omarcheivoire.ci/uploads/0bba37a9-4092-4784-8c41-12645c1428a2.jpeg}	Carpe noir	Carpe noir fraiche	KG	1	1500.00	Poissons	680588bb-1dcd-4ef6-9a7b-1e32892f6cf2	t	2025-01-16 14:50:45.899	2025-01-16 14:55:00.008
+55779e06-d9e7-4a2d-8dc7-02e479f93d6b	{https://api.omarcheivoire.ci/uploads/4f23beff-2907-4faa-95f0-4df8c5bbc7f6.jpeg}	Maquerau	Poisson maquerau	KG	1	1500.00	Poissons	680588bb-1dcd-4ef6-9a7b-1e32892f6cf2	t	2025-01-16 20:47:19.767	2025-01-16 20:47:19.767
+ea6d1fac-d4cd-4d1e-b12e-44f5fd9acb0b	{https://api.omarcheivoire.ci/uploads/c46c27ac-e6f1-4887-ab2c-5d5449551118.jpeg}	Djoumgblé 	- 100% Naturel\nDJOUMGLE IVOIRE est exempt de tout additif chimique ou conservateur, vous offrant un produit pur et sain.\n\n- Sans gluten\nDJOUMGLE IVOIRE est naturellement sans gluten, ce qui en fait un excellent choix pour les personnes souffrant de sensibilités alimentaires ou suivant un régime sans gluten.\n\n- Faible en calories\nAvec sa faible teneur en calories, DJOUMGLE IVOIRE est idéal pour ceux qui cherchent à contrôler leur apport calorique sans sacrifier la saveur ou la nutrition.	UNIT	1	500.00	Legumes	b5a49438-6af4-4830-9048-1f73d5da4a27	t	2025-01-27 12:36:15.536	2025-01-27 13:00:35.882
+f32920c9-bcb7-4185-9f3e-823586ff13f5	{}	Huile rouge		UNIT	1	500.00	Autres	b5a49438-6af4-4830-9048-1f73d5da4a27	t	2025-01-27 16:27:24.415	2025-01-27 16:27:24.415
+ab8bee6a-9ac5-4b77-868a-afc566f3a050	{}	Chinchar 		UNIT	4	1000.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:39:28.911	2025-01-27 16:39:28.911
+0411f32b-3217-4e82-969b-88f7ac3b3270	{}	Chinchar Fumé		UNIT	5	1000.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:40:14.607	2025-01-27 16:40:14.607
+bbd70928-2f03-4935-99a0-76cdee64e854	{https://api.omarcheivoire.ci/uploads/fa2acf1f-1eb5-4707-8d9f-b01f8ec2543c.jpeg}	Poisson fumé "sogodjaigai"		TAS	1	2000.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:30:12.382	2025-01-27 16:43:11.619
+513acf5a-2432-4792-9748-fa86ad06fb11	{https://api.omarcheivoire.ci/uploads/3a565c1f-eb02-443a-9361-5f3eaf922105.jpeg}	Poisson fumé "sogodjèguè"		UNIT	1	600.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:31:02.398	2025-01-27 16:43:23.908
+d7ff7891-50a4-4e33-ad6b-5e0b976d254c	{https://api.omarcheivoire.ci/uploads/c74971de-0e6e-46ab-9b18-70d19e3b2acf.jpeg}	Poisson fumé sogodjaigai		UNIT	1	500.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:31:36.094	2025-01-27 16:43:36.817
+69f8c0ab-c1b3-4076-be58-06c288053dec	{https://api.omarcheivoire.ci/uploads/4422251a-7bb4-4939-ac45-313170247088.jpeg}	Maquereau fumé		UNIT	1	200.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:33:01.17	2025-01-27 16:43:47.62
+38e0c735-b5af-4152-b4af-e8c8e6e459e3	{https://api.omarcheivoire.ci/uploads/439a968f-02ae-47fe-b01b-c2deaa8df1c0.jpeg}	Maquereau "fumé"		UNIT	1	250.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:33:55.752	2025-01-27 16:44:01.786
+26b716ba-b493-43d3-aaf0-10804ee2c441	{https://api.omarcheivoire.ci/uploads/6d92719b-7342-469b-a8b3-a0d01a0d1a81.jpeg}	Maquereau Fumé		TAS	1	500.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:34:27.895	2025-01-27 16:44:13.578
+3834a83b-7245-4295-a437-6dc5120c1b41	{https://api.omarcheivoire.ci/uploads/bcc09a41-429b-4c9b-a0eb-72a750de4279.jpeg}	Magne sec		TAS	1	500.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:35:11.16	2025-01-27 16:48:52.996
+aa805bbb-16e2-4e0e-a0a1-6f6efe5c2306	{https://api.omarcheivoire.ci/uploads/8fe2b2af-780c-4476-9399-711994847412.jpeg}	magne sec tas de 3		TAS	1	500.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:35:56.855	2025-01-27 16:49:08.426
+54bdf34e-bd8f-474a-a9fe-dc98d5046607	{https://api.omarcheivoire.ci/uploads/2ca109dd-e2b9-44d5-aeeb-dbe537c37204.jpeg}	Brochet Fumé		UNIT	4	10000.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:37:19.608	2025-01-27 16:49:18.802
+05c88d2d-7d81-4aef-a7ac-14fdabef7c81	{https://api.omarcheivoire.ci/uploads/bf976d02-9236-4229-8f80-e0c700c74f60.jpeg}	Brochet fumé		UNIT	2	5000.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:36:45.712	2025-01-27 16:49:33.242
+3b1612c1-e43c-435c-b95a-e58ed1790bb4	{https://api.omarcheivoire.ci/uploads/d1710f42-7045-4782-8174-13901bd6328f.jpeg}	Capitaine fumé		UNIT	4	1000.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:38:26.127	2025-01-27 16:49:55.915
+09448ebd-eca8-4c2c-9c43-25b25be99831	{https://api.omarcheivoire.ci/uploads/f0e6946c-7233-4a14-b0fb-13f926da65bc.jpeg}	Capitaine Fumé		UNIT	3	500.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:38:52.271	2025-01-27 16:50:06.594
+579c9f0c-8a3b-4539-8ce4-7060f2efb2a9	{https://api.omarcheivoire.ci/uploads/d1c3bf32-066e-41d2-a724-ac80c0618f60.jpeg}	Brochet FUME		UNIT	3	10000.00	Poissons	bb64d493-ac93-41ef-acff-488400dcace6	t	2025-01-27 16:37:52.527	2025-01-27 16:49:42.932
+e0adf5bd-a032-4673-8e53-c6006993cc05	{https://api.omarcheivoire.ci/uploads/5cde5e76-d288-4dee-aa64-0afa87ff292e.jpeg}	Banane plantain		UNIT	6	1000.00	Tubercules	524ec8cd-33a5-48c0-bacf-a45b87de3ae9	t	2025-01-27 16:56:03.993	2025-01-27 16:56:03.993
+5f43d244-d75e-4f22-b5f3-ac5399f40e62	{https://api.omarcheivoire.ci/uploads/da1de3c3-adff-4d34-a7dc-7c025960ad41.jpeg}	Banane plantain 		UNIT	4	500.00	Tubercules	524ec8cd-33a5-48c0-bacf-a45b87de3ae9	t	2025-01-27 16:56:42.466	2025-01-27 16:56:42.466
+d9f54707-66f6-4abf-a27a-bd36ac3d4e92	{https://api.omarcheivoire.ci/uploads/9b65cfc7-72f4-468d-9351-f08980428a74.jpeg}	Banane Plantain  		UNIT	5	500.00	Tubercules	524ec8cd-33a5-48c0-bacf-a45b87de3ae9	t	2025-01-27 16:57:24.24	2025-01-27 16:57:24.24
+72b8c829-d6f4-47ad-adcc-5c669342258e	{https://api.omarcheivoire.ci/uploads/e18a9fb6-8b46-43c4-9cc7-098bc6898448.jpeg}	Régime de banane plantain		UNIT	1	3000.00	Tubercules	524ec8cd-33a5-48c0-bacf-a45b87de3ae9	t	2025-01-27 16:58:03.848	2025-01-27 16:58:03.848
+193ac209-615b-40aa-9193-4e0d012e4c79	{https://api.omarcheivoire.ci/uploads/e696a7f7-495f-4121-8ac4-10471ef15f2a.jpeg}	Régime de Banane Plantain		UNIT	1	2500.00	Tubercules	524ec8cd-33a5-48c0-bacf-a45b87de3ae9	t	2025-01-27 16:58:38.992	2025-01-27 16:58:38.992
+324f2326-5bdb-45d5-883c-e014048cd859	{https://api.omarcheivoire.ci/uploads/2a32dc0a-a2cd-48b4-8ab5-756f16d27cfe.jpeg}	Aubergine N'DROWA		TAS	1	200.00	Legumes	2cccde3a-d3f4-485b-b14d-bd5445dffe44	t	2025-01-27 17:00:31.782	2025-01-27 17:00:31.782
+5fad8ca9-dac7-459d-9e14-9b8acef4256e	{https://api.omarcheivoire.ci/uploads/f90c85dc-41f1-4df0-8dbe-a5cd41e43747.jpeg}	Aubergine		TAS	1	500.00	Legumes	2cccde3a-d3f4-485b-b14d-bd5445dffe44	t	2025-01-27 17:01:26.846	2025-01-27 17:01:26.846
+f866c4cf-7d5d-4ca7-914b-b101003de8db	{https://api.omarcheivoire.ci/uploads/a03165f9-3978-493d-ae20-b195de2391b3.jpeg}	Piment local		TAS	1	200.00	Legumes	2cccde3a-d3f4-485b-b14d-bd5445dffe44	t	2025-01-27 17:03:26.07	2025-01-27 17:03:26.07
+35f28aac-ab75-47a5-af1c-21cb829d7745	{https://api.omarcheivoire.ci/uploads/af487379-21ad-485a-b8d1-53c3e9a496c3.jpeg}	Piment Sens Bon		KG	1	1275.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:15:45.18	2025-02-01 00:27:32.169
+45ce4d52-a057-4fca-aef8-392d91bb3390	{https://api.omarcheivoire.ci/uploads/6fd84e0e-2e34-41d9-84a3-10bee6533c04.jpeg}	Piment local 		TAS	1	100.00	Legumes	2cccde3a-d3f4-485b-b14d-bd5445dffe44	t	2025-01-27 17:04:07.238	2025-01-27 17:04:07.238
+d06e7a53-6a90-4ccb-bb65-74ee46d28483	{https://api.omarcheivoire.ci/uploads/d5a6a22a-cda1-4ee1-973e-d8d7d01f08cf.jpeg}	Piment local  		TAS	1	500.00	Legumes	2cccde3a-d3f4-485b-b14d-bd5445dffe44	t	2025-01-27 17:04:35.51	2025-01-27 17:04:35.51
+21749e71-ccb2-4743-95ff-fd50b433802c	{https://api.omarcheivoire.ci/uploads/90af94e7-ecd9-49b8-9871-a38181cfeb48.jpeg}	Gombo		TAS	1	100.00	Legumes	2cccde3a-d3f4-485b-b14d-bd5445dffe44	t	2025-01-27 17:05:38.983	2025-01-27 17:05:38.983
+4f1d536c-bc75-4b34-b184-046382f312d4	{https://api.omarcheivoire.ci/uploads/ac4ea2e9-a22b-49f8-bf77-4743af8e544f.jpeg}	Gombo 		TAS	1	200.00	Legumes	2cccde3a-d3f4-485b-b14d-bd5445dffe44	t	2025-01-27 17:05:59.406	2025-01-27 17:05:59.406
+dbc3ea0e-2e51-470f-b1bf-d5f1f3d04084	{https://api.omarcheivoire.ci/uploads/3810cb10-3b8e-4d9d-9c79-ca5a00ceb7ab.jpeg}	Gombo  		TAS	1	500.00	Legumes	2cccde3a-d3f4-485b-b14d-bd5445dffe44	t	2025-01-27 17:06:21.414	2025-01-27 17:06:21.414
+04a35042-53e9-49ec-8183-ae9f54082303	{https://api.omarcheivoire.ci/uploads/d9d5acd2-7efb-497c-991f-bed4c2779d86.jpeg,https://api.omarcheivoire.ci/uploads/e9354e4a-eb76-4dc9-aff2-bd2c52f16927.jpeg}	Poulet de chair 	3kg	UNIT	1	5500.00	Viandes	33c83394-ba93-42e1-9663-672dd2d3a886	t	2025-01-31 21:32:36.395	2025-01-31 21:33:39.582
+26decb3f-24fe-42a3-8ca0-f5bb3150cadb	{https://api.omarcheivoire.ci/uploads/1b7d427c-6232-4d8b-b1d9-4113652e6003.jpeg}	Carottes 		KG	1	800.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:17:32.195	2025-02-01 00:28:02.169
+22140ac1-93f5-4e34-9151-1c25139ce92c	{https://api.omarcheivoire.ci/uploads/3146bfa4-49e7-440f-961c-0c06c4894abf.jpeg}	Oignons		KG	1	600.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:17:57.275	2025-02-01 00:28:18.393
+32712eb5-56a5-4efd-9a0d-7248358cb81a	{https://api.omarcheivoire.ci/uploads/2c07146c-6e28-4ca5-870d-13c710a46da3.jpeg}	Bouquet de Persil 		UNIT	1	600.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:20:06.873	2025-02-01 00:28:52.449
+e28d8bc1-9cc0-459d-965f-e0597ba58895	{https://api.omarcheivoire.ci/uploads/8a9b7a5c-5d70-4ef6-b3a2-11812de9aab6.jpeg}	Aubergine 		TAS	1	500.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:21:31.963	2025-02-01 00:29:20.185
+ba97d735-3328-449e-9206-02943fbb9533	{https://api.omarcheivoire.ci/uploads/5d5a501b-2570-4c8d-bb0b-d4a13ec21b19.jpeg}	Pot de Akpi		BOITE	1	500.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:23:04.733	2025-02-01 00:30:30.994
+997d8270-ec8d-46a3-a6f6-27332c882454	{https://api.omarcheivoire.ci/uploads/b4d8e033-5da7-469c-a8ce-14c75c0c3c25.jpeg}	Manioc 		TAS	1	500.00	Tubercules	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:26:31.427	2025-02-01 00:31:37.844
+4dc76272-90ff-4acb-9037-a22f64467fe2	{https://api.omarcheivoire.ci/uploads/8f3a67eb-da17-4d99-ad6d-b1d2220f920e.jpeg}	Cube Maggi	1/4 du paquet 	BOITE	1	500.00	Autres	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:30:38.121	2025-02-01 00:32:06.916
+93c61715-29bc-412c-99ce-1a2f472a501b	{https://api.omarcheivoire.ci/uploads/0ef08aee-8aaf-4120-92e6-b7e94a11f1ac.jpeg}	Poisson BELLE DAME 	Frais 	KG	1	1600.00	Poissons	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:36:01.483	2025-02-01 00:32:44.075
+45b41417-4c45-4e5a-b051-3f89526c7dcb	{https://api.omarcheivoire.ci/uploads/2511714a-e14f-4412-bfae-156a3e5d5670.jpeg}	Poisson SOLE	Frais 	KG	1	2500.00	Poissons	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:37:14.118	2025-02-01 00:33:02.833
+076436ca-3623-4ee0-8bfd-6184394423c4	{https://api.omarcheivoire.ci/uploads/fde40d4a-8c8e-4337-9ba0-fd50131b153e.jpeg}	Chinchard		KG	1	1500.00	Poissons	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:39:50.978	2025-02-01 00:33:30.785
+da36d512-0948-41b8-9205-97d7dcb867ec	{https://api.omarcheivoire.ci/uploads/bbd6b3c7-c601-438e-a5ed-bc700dfa3043.jpeg}	Carpe Chinoise 		KG	1	1800.00	Poissons	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:41:55.033	2025-02-01 00:34:12.507
+cfc78162-d509-48c5-bbfe-f961dddb8f21	{https://api.omarcheivoire.ci/uploads/d42f70eb-0f99-406d-8ba0-1d86efe0a63d.png}	Maquereau 	Frais 	KG	1	1500.00	Poissons	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:43:13.377	2025-02-01 00:34:31.491
+036469b4-b7c1-47fc-9401-7d09782c8873	{}	Carotte		UNIT	1	200.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:31:05.652	2025-02-01 08:31:05.652
+55050cff-287a-4c9b-9cb4-83a70e254fe2	{https://api.omarcheivoire.ci/uploads/544f40c9-f335-4c22-a230-01d267afd2c1.jpeg}	Pot de patte d'arachide 		BOITE	1	500.00	Autres	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:07:31.249	2025-02-01 09:37:16.242
+d21a2193-1ff8-4812-ae87-064ff5a09fa3	{https://api.omarcheivoire.ci/uploads/e83a6921-8c2b-466c-9f25-4145b4c99167.jpeg}	Choux		KG	1	600.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:10:04.592	2025-02-01 09:37:38.922
+59b063cc-64e9-498d-ac7e-9dcf68328c7c	{https://api.omarcheivoire.ci/uploads/55c897dc-587f-4529-a805-62b8a28f8c36.jpeg}	Concombre 		KG	1	500.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:10:56.84	2025-02-01 09:37:48.442
+9ec6d2f0-8997-44ad-b266-c3973a82161a	{https://api.omarcheivoire.ci/uploads/6529b0b2-cd76-4824-8daf-25dc7f106149.jpeg}	Gombo baoulé 		KG	1	675.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:12:36.281	2025-02-01 09:38:22.019
+5a73dab2-96de-4bfc-bd60-c19f80366557	{https://api.omarcheivoire.ci/uploads/fc6851aa-4dc6-41e2-85f2-b97cb40d0a24.jpeg,https://api.omarcheivoire.ci/uploads/aa164628-7534-4e55-b22b-7561bc703e77.jpeg}	Poulet chair	3.6kg	UNIT	1	6000.00	Viandes	33c83394-ba93-42e1-9663-672dd2d3a886	t	2025-01-31 21:39:43.021	2025-01-31 21:41:15.876
+02d44652-d8da-41c4-944f-068c3a909ce5	{https://api.omarcheivoire.ci/uploads/920a1b09-2642-4d30-92a6-34171c3e33be.jpeg}	Bouquet de Feuille d'oignon		UNIT	1	500.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:28:26.322	2025-02-01 00:31:52.993
+38a2182d-b0d4-402d-8673-8020068c14a0	{https://api.omarcheivoire.ci/uploads/b2f2279b-793e-4766-b3f8-750dcff49e21.jpeg}	Haricot vert		KG	1	900.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:13:42.243	2025-02-01 00:27:04.108
+9edce67b-53e0-4b8b-a920-249d2d1031b4	{https://api.omarcheivoire.ci/uploads/db4d84e3-dcb4-473f-b4f9-3ac5103db917.jpeg}	Poisson SOSSO	Frais	KG	1	2500.00	Poissons	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:35:01.402	2025-02-01 00:32:24.513
+0c8ab25a-29c6-414c-ac45-8544de222949	{https://api.omarcheivoire.ci/uploads/1b175c74-f3d1-4052-aca5-1c5ed7f0f5b0.jpeg}	Brochet fumé 		KG	1	2500.00	Poissons	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:38:44.931	2025-02-01 00:33:17.049
+b49933fb-8a5d-408b-87c2-7f30ebdbc2f4	{https://api.omarcheivoire.ci/uploads/b53e70b6-a48d-4e70-9bfe-600e470a2bb1.jpeg}	Carpe d'eau douce 		KG	1	3000.00	Poissons	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:41:03.506	2025-02-01 00:33:51.601
+10d5f88f-0668-4cd9-80da-c2bb28b5a61e	{https://api.omarcheivoire.ci/uploads/e03349d4-7af2-4898-9bbb-f61ff3f24874.jpeg,https://api.omarcheivoire.ci/uploads/90b01e77-50dc-4c39-a0c6-7fe5758ff9f9.jpeg}	Pintade 		UNIT	1	6500.00	Viandes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:44:02.554	2025-02-01 00:34:52.585
+a57febed-1b20-4ffd-9c62-268263d344f7	{https://api.omarcheivoire.ci/uploads/7974db0c-8aac-4369-ac0d-49f38f9d72a9.jpeg}	Pâte de boeuf local 		KG	1	2500.00	Viandes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:45:27.306	2025-02-01 00:35:04.041
+dfb2b294-96b8-4401-a4c6-32b91cb8df39	{https://api.omarcheivoire.ci/uploads/b831eed3-fc23-4a5a-bf09-7b1c9bbda4a6.jpeg}	Poulet de chair 		UNIT	1	2500.00	Viandes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:46:55.066	2025-02-01 00:35:24.361
+d78352bb-63d3-4e10-809b-7eec95e978ec	{https://api.omarcheivoire.ci/uploads/796ba370-5681-42fc-84f7-54e562292248.jpeg}	Cuisse de poulet 		KG	1	2500.00	Viandes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:48:09.618	2025-02-01 00:36:07.546
+41ba16c1-6619-4bf9-b96a-5907ab491cc6	{https://api.omarcheivoire.ci/uploads/3953789f-db68-4aee-a0c5-b2f038fe3d86.jpeg}	Gésier 		KG	1	2500.00	Viandes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:48:54.178	2025-02-01 00:36:19.643
+30512d11-662d-4174-8348-09f40f733c22	{https://api.omarcheivoire.ci/uploads/356998e5-bc27-4d6b-9739-5a5bb3b30181.jpeg}	Poulet Pondeuse		UNIT	1	4000.00	Viandes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:46:20.392	2025-02-01 00:36:32.227
+7b0afc72-fff5-4147-abe2-1603e26f0b09	{https://api.omarcheivoire.ci/uploads/4394198a-eb00-428f-96d1-7fd2d76beb4d.jpeg,https://api.omarcheivoire.ci/uploads/01b6725a-a31b-4901-a879-270711012dfa.png}	Poulet Africain 		UNIT	1	7000.00	Viandes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:50:41.433	2025-02-01 00:37:03.353
+bc2db71e-da32-4887-acb4-4d94b5c3d550	{https://api.omarcheivoire.ci/uploads/d7890c09-11cb-4eca-b5a0-d790f4e56dff.jpeg}	Langue de Boeuf 		KG	1	2500.00	Viandes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:51:15.737	2025-02-01 00:37:18.609
+2ed37add-2df6-41a7-9b20-67e4fb071f6f	{https://api.omarcheivoire.ci/uploads/4dd0961c-0350-47da-b98b-fdf8c91fb481.jpeg}	Queue de Boeuf 		KG	1	4000.00	Viandes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:53:49.571	2025-02-01 00:37:37.986
+11563bad-2105-43a9-a7ec-e534ebd4fefd	{https://api.omarcheivoire.ci/uploads/446c405b-f927-4a56-a8ce-d8e9b1b49527.jpeg}	Gombo 		TAS	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:06:24.584	2025-02-04 20:06:03.503
+b39a82d1-caa2-4786-bb69-e03fcd127dd2	{https://api.omarcheivoire.ci/uploads/b616885d-5de1-4b5f-b65e-7b9bed6e4aeb.jpeg}	aubergine violet 		UNIT	1	500.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:14:22.991	2025-02-04 20:06:27.967
+db1cf8ab-4672-4635-a032-2e821fc63f37	{https://api.omarcheivoire.ci/uploads/651cf0b9-fdc1-48f2-a1a4-5c7684447c68.jpeg}	Oignon violet 	Oignon violet 	KG	1	600.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:40:14.441	2025-02-01 12:29:50.778
+4da116fd-0846-4c8c-bb30-628ffe8e8cd5	{https://api.omarcheivoire.ci/uploads/cf5bc0bd-abfe-4e7e-a6d9-9cb196ffdbba.png}	Ail 	3 gousse d'ail 	UNIT	3	250.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:45:35.486	2025-02-01 12:32:20.483
+d62fd4ce-0681-45d0-89cf-915c0671c086	{https://api.omarcheivoire.ci/uploads/679d9b53-2792-454c-b168-fa50227000aa.jpeg}	Persil .	Petit tas de persil 	TAS	1	500.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:42:50.628	2025-02-01 12:32:54.875
+cf136886-26be-4b4f-9708-4ac33175c209	{https://api.omarcheivoire.ci/uploads/b41cb7c2-71a2-489f-8134-e41cf0df7369.jpeg}	Persil 	Gros tas de persil 	TAS	1	1000.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:41:45.316	2025-02-01 12:33:33.258
+8f634c4e-2d35-49db-8a32-85c2610a766c	{https://api.omarcheivoire.ci/uploads/214eb62d-e300-4916-9d9e-57bc2ff8979e.jpeg}	Banane plantain		TAS	1	500.00	Tubercules	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:16:55.416	2025-02-04 20:06:51.407
+d3fbdf81-7ad0-43a2-832d-21f36d864427	{https://api.omarcheivoire.ci/uploads/b82c7971-ef7b-4596-a460-060208097073.jpeg}	Manioc 		UNIT	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:19:18.854	2025-02-04 20:07:19.59
+c2829095-4028-49e1-a337-9c4214875bc1	{https://api.omarcheivoire.ci/uploads/6d3704c8-0c88-49f3-b5a3-af914b6a37b8.jpeg}	Pate d'arachide 		BOITE	1	500.00	Autres	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:25:48.761	2025-02-04 20:08:41.079
+9a109b8d-b772-4d82-856f-364d0e583436	{https://api.omarcheivoire.ci/uploads/7f7ba93d-af57-414d-b326-6862f2728f0c.jpeg}	Haricots vert		TAS	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:52:43.32	2025-02-04 20:22:10.357
+1b6339e1-d246-4cf9-a9b2-ccfb828aa5e8	{https://api.omarcheivoire.ci/uploads/dcb52b85-4ac7-4b08-b3fd-069a7bab769f.jpeg}	pate de pistache		BOITE	1	1000.00	Autres	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:30:13.177	2025-02-04 21:15:57.334
+dc013236-0239-4871-8fcb-52051d685ee5	{https://api.omarcheivoire.ci/uploads/b8f24d5e-13ab-4d59-bc28-9a26086ae1a8.jpeg}	Tomate pâte 		BOITE	1	500.00	Autres	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:18:36.862	2025-02-04 21:17:49.469
+0c18dc9f-6aaf-461e-b786-59be90cba0f1	{https://api.omarcheivoire.ci/uploads/7e389fcb-d96d-47fd-aa44-57cbefd3f58d.jpeg}	huile rouge 		AUTRE	1	2000.00	Autres	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:24:23.774	2025-02-04 21:19:19.509
+8d73c174-932c-48df-a97d-7bbe1361af19	{}	Huile rouge		BOITE	1	400.00	Cereales	abb1f748-3b88-4465-a91c-3d6f9e543e54	f	2025-02-04 19:22:08.03	2025-02-04 21:19:53.72
+25833fb3-be65-488d-b261-fe29a6e1b855	{https://api.omarcheivoire.ci/uploads/b139742c-d988-4b55-ae7c-029654564ddf.jpeg}	salade		TAS	1	300.00	Autres	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:35:56.953	2025-02-04 21:20:44.494
+f150605c-7d3f-4b38-90ec-ddad9ea9ea00	{https://api.omarcheivoire.ci/uploads/f2a9639f-c51a-403c-898d-51f2e75e19f2.jpeg}	avocat		UNIT	1	300.00	Fruits	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:51:27.473	2025-02-04 21:21:54.205
+ad266dc7-ba2c-4025-b379-1e759b219cf6	{https://api.omarcheivoire.ci/uploads/a9584555-22a7-4526-85f5-5edd17f4b91a.jpeg}	Ananas		UNIT	1	300.00	Fruits	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:41:13.854	2025-02-04 21:24:11.11
+ab6f9424-7080-4df5-9d4c-05373ff06565	{https://api.omarcheivoire.ci/uploads/536804fa-5207-46cb-b9b4-dc08a880174d.jpeg}	gingembre		TAS	1	200.00	Autres	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:50:28.769	2025-02-04 21:25:52.925
+a2b97dbd-bd21-4181-9de9-9bd65be9750c	{https://api.omarcheivoire.ci/uploads/cdacffc0-5783-485d-a251-b6cfe1bcc127.jpeg}	mil		KG	1	600.00	Cereales	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:59:38.575	2025-02-04 21:27:20.557
+f0c04bd0-9629-4eb7-8d44-64c9ef7e3e9c	{}	Mangue		UNIT	3	500.00	Fruits	abb1f748-3b88-4465-a91c-3d6f9e543e54	f	2025-02-04 19:43:09.966	2025-02-04 21:29:01.31
+db806375-b372-4f58-8201-aa36f8a31eb5	{}	mais		DEMI_KG	1	500.00	Cereales	abb1f748-3b88-4465-a91c-3d6f9e543e54	f	2025-02-04 19:56:15.08	2025-02-04 21:29:17.746
+34b8e212-b8c9-4053-a76e-a72f15b81ed4	{}	Pomme de terre 		KG	1	600.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:55:40.975	2025-02-01 08:55:40.975
+591bfa12-fc88-49a2-911f-3d7a431df5df	{}	Pistache 	Petite boîte 	BOITE	1	600.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:57:46.876	2025-02-01 08:57:46.876
+465e9002-00b7-4b8e-af4c-4acf15d71bf0	{https://api.omarcheivoire.ci/uploads/7a06ecf2-a915-49f8-8861-801092e29a8e.jpeg}	tomate 		TAS	1	300.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 18:58:39.166	2025-02-04 20:04:15.969
+a4f6b084-fcad-4869-b372-425e048a6322	{https://api.omarcheivoire.ci/uploads/2d7cce56-5078-4329-b327-f24f32b81369.jpeg}	TOmate		TAS	1	500.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 18:59:28.317	2025-02-04 20:04:37.067
+df783551-6f77-4385-be76-8585faaba207	{}	Pistache	Grande boîte 	BOITE	1	1000.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:59:44.694	2025-02-01 08:59:44.694
+dd9486b7-8c88-48d0-ab58-e15aa3363d02	{https://api.omarcheivoire.ci/uploads/b3de42ec-f4b1-4f78-8bbb-98352593c1da.jpeg}	Plaquette d'œuf 		AUTRE	1	2500.00	Autres	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:00:17.333	2025-02-04 20:05:05.351
+5b65dfbb-71dd-4e30-b890-486199ecb5c8	{https://api.omarcheivoire.ci/uploads/f277c19b-958b-4a45-9d1f-cf27a4fdb595.jpeg}	Aubergine 		TAS	1	100.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:01:43.894	2025-02-04 20:05:36.552
+a01f3e5c-9584-4576-b047-c874bcefd05e	{https://api.omarcheivoire.ci/uploads/8e564b7c-203a-418d-a739-4b391ca563d3.jpeg}	gombo 		TAS	1	500.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:06:55.862	2025-02-04 20:09:36.039
+c4fc36ca-9aea-4495-9555-88e85a25203d	{https://api.omarcheivoire.ci/uploads/b6a149ed-cc51-4179-a5f3-fe336113968f.jpeg}	Chou		UNIT	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:07:39.015	2025-02-04 20:10:10.887
+a3205453-07af-49c6-9e47-27ae662d0275	{https://api.omarcheivoire.ci/uploads/a8483669-0f0d-4734-bbdd-ef62dd9f1b5c.jpeg}	CHOU 		UNIT	1	500.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:08:21.67	2025-02-04 20:10:33.631
+7c59fc90-9578-4779-bc3d-db20bbce1a0b	{https://api.omarcheivoire.ci/uploads/8ae716fa-3b8c-4f42-8d77-cd84a7dc054e.jpeg}	Tomate		TAS	1	500.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-03 11:07:20.887	2025-02-04 21:39:02.431
+08120e03-dfb2-440b-a6bf-aaa68d4cda4d	{https://api.omarcheivoire.ci/uploads/fdd0a2eb-ee2d-4ff1-965e-7fbe83fab556.jpeg}	Piment 		TAS	1	500.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:09:31.383	2025-02-04 20:11:11.825
+df9f04f3-04a7-4d55-8e67-ff460e86a5f1	{https://api.omarcheivoire.ci/uploads/7d44ae77-ccae-42e7-8929-f2853f4abe4c.jpeg}	Poivron		KG	1	1200.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:08:06.817	2025-02-01 09:36:54.515
+a7b82660-d8e0-445e-afbf-6436d514d0a1	{https://api.omarcheivoire.ci/uploads/27b79e24-2850-447b-bd47-cb57ac2fc8be.jpeg}	Pot de Piment en poudre 		BOITE	1	500.00	Epices	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:06:02.522	2025-02-01 09:37:07.372
+b77d3caf-c004-43c0-96d0-b63820086d28	{https://api.omarcheivoire.ci/uploads/2c4d0283-79a4-455b-9dcb-55847c141aa8.jpeg}	Tomate		KG	1	600.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:09:23.425	2025-02-01 09:37:27.026
+2c4dcb3b-560d-431e-b079-0981f7d0ead1	{https://api.omarcheivoire.ci/uploads/5a0e6a21-0e64-4ff2-b7ed-d349ea3dac7a.jpeg}	Gombo dioula		KG	1	675.00	Legumes	0ede5733-419d-4bf9-9d89-03615609de77	t	2025-01-31 23:12:01.426	2025-02-01 09:38:07.994
+a6b7ffb3-ccda-4e66-b200-0e4e05992b75	{https://api.omarcheivoire.ci/uploads/81048dd3-f48e-4e0a-bc72-fa0b54f14662.jpeg}	Tomate 		KG	1	700.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:27:22.036	2025-02-01 12:19:56.623
+eb19dfe0-2df1-4d2d-a4e8-d1e5c4918be3	{https://api.omarcheivoire.ci/uploads/47afe0bf-9918-4943-a708-89ca47ac67db.jpeg}	Oignon 	Oignon blanc 	KG	1	600.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:39:05.686	2025-02-01 12:29:17.306
+ee4603d2-b54f-4bd5-8c54-f8d8abc97ae4	{https://api.omarcheivoire.ci/uploads/d9584400-8a31-4dbe-84d8-c5a8cdc6f135.png}	Ail	1 gousse d'ail 	UNIT	1	100.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:47:58.277	2025-02-01 12:34:03.976
+f5f15cf9-442c-4ca3-b892-c80217f2860a	{https://api.omarcheivoire.ci/uploads/c818f2dd-467d-4a35-a8a4-e8d8456aee10.jpeg}	Chou		KG	1	400.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:56:24.04	2025-02-01 12:36:58.246
+f0be267a-dcaa-4d6c-98be-ed7823e2f2a6	{https://api.omarcheivoire.ci/uploads/d256a7e2-ed45-40e3-aa42-8dc97c9668b7.jpeg}	Banane plantain		SAC	1	15000.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 09:20:46.785	2025-02-01 12:38:29.046
+f7c01013-cf5b-4062-9dde-0434a463a314	{https://api.omarcheivoire.ci/uploads/6c6bd8a1-2422-4759-8372-11810f669c80.jpeg}	Banane plantain 		TAS	1	500.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 09:22:12.784	2025-02-01 12:38:54.351
+9bf3e89c-5aca-47ff-85fa-31a58a81bd2a	{https://api.omarcheivoire.ci/uploads/703055d5-5105-4be0-9bc4-06b21f6ce2fa.jpeg}	Banane 		TAS	1	1000.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 09:23:39.232	2025-02-01 12:39:25.183
+5a8edb2d-b0dc-47a3-ab27-1a9607ae459b	{https://api.omarcheivoire.ci/uploads/92ec0807-4f10-4fc3-8b9a-9a3ea250509d.jpeg}	Piment 		BOITE	1	2500.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:32:35.296	2025-02-01 12:40:03.67
+9edec20d-362b-4d47-a2de-6234bd770c24	{https://api.omarcheivoire.ci/uploads/ef89947d-ee1e-4955-8f57-9428f214fa7a.jpeg}	Carottes 		AUTRE	1	1400.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 08:29:04.666	2025-02-01 12:43:01.002
+561096f6-dd2d-4e16-a8c5-3715d19a51cc	{}	Piment  local		TAS	1	200.00	Legumes	2b7cd102-b49d-46ea-aaf7-e08d6afa0eae	t	2025-02-01 12:50:07.335	2025-02-01 12:50:07.335
+3c8346ef-d5bf-4cad-95fa-8df290218d92	{https://api.omarcheivoire.ci/uploads/39bdf4d2-506a-44f1-b9e8-6226a2be924f.jpeg}	Concombre 		UNIT	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:10:13.638	2025-02-04 20:11:47.559
+c4fed3da-8687-4895-a0b6-c777d9920b2a	{}	Djuomblé	Petite boîte 	BOITE	1	250.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 09:02:04.716	2025-02-13 23:43:38.195
+68287929-99bd-477d-bbcb-cf54a7c22420	{https://api.omarcheivoire.ci/uploads/2daceacf-0631-4040-90b8-ca9e4e7be2ee.jpeg}	feuille d'oignon		TAS	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 20:01:53.559	2025-02-04 23:10:42.297
+e0fadc29-cbdc-4c37-a61c-0b8b734b873a	{https://api.omarcheivoire.ci/uploads/5014f9bb-6d16-4d2c-a7b6-5af3142f606f.jpeg}	Aubergine violet 		UNIT	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:11:10.335	2025-02-04 20:12:07.215
+063dcb37-fa62-4897-a966-e6aebf51bba9	{https://api.omarcheivoire.ci/uploads/8a3b16d1-593a-4042-ae7a-d1e2367432e8.jpeg}	Oignon blanc 		KG	1	600.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 18:55:31.656	2025-02-04 20:12:46.639
+44788c14-c9f0-4e63-8fbc-db19453e17c5	{https://api.omarcheivoire.ci/uploads/d57e9f8e-5909-4f5f-9f99-4cb00a410fbe.jpeg}	Oignon violet 		KG	1	600.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 18:56:02.416	2025-02-04 20:13:05.687
+3598d3df-d3db-4125-a068-6d1bd3c64765	{https://api.omarcheivoire.ci/uploads/ca25e6bd-1f48-4769-ac1a-d13b74cede69.jpeg}	Tomate 		TAS	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 18:57:19.86	2025-02-04 20:16:08.633
+1e3c166a-6929-4f1f-b955-0196ab84e521	{https://api.omarcheivoire.ci/uploads/f6525bba-8914-4c10-bda6-ca68a0145936.jpeg}	Pomme de terre 		KG	1	700.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:00:47.045	2025-02-04 21:16:46.301
+d7ddb7d3-7095-4fbb-9d72-52c0e1a88f39	{https://api.omarcheivoire.ci/uploads/ee3a6c95-c65a-4167-9f67-ff3d60bc747b.jpeg}	Soumbara poudre		AUTRE	1	50.00	Epices	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 20:02:44.543	2025-02-04 23:11:18.962
+51af7ea7-6ade-4cd7-8fc3-82a8cc50c905	{https://api.omarcheivoire.ci/uploads/cb0cb370-6d64-47ce-91ea-8f57b1a44469.jpeg}	Soumbara grain		AUTRE	1	50.00	Epices	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 20:03:44.67	2025-02-04 23:11:37.441
+5dc1af50-5a4a-4955-96af-aa579e0ba84d	{}	Djoumblé 	Djumblé grosse boîte  	BOITE	1	500.00	Legumes	4bacede2-648c-4425-b55d-fb17024d77b9	t	2025-02-01 09:03:28.959	2025-02-13 23:43:48.064
+8b70ce71-6c86-4e4e-86d5-2ad0463e484d	{https://api.omarcheivoire.ci/uploads/8283ea07-9408-4c83-8ba2-59883007ee3e.jpeg}	Huile rouge 		AUTRE	1	500.00	Autres	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:23:12.446	2025-02-04 21:18:51.141
+2fd077f4-e03f-4c6a-8764-237f838f397f	{https://api.omarcheivoire.ci/uploads/dc72bae6-2295-4f4b-85a4-147be5291e0b.jpeg}	carotte 		UNIT	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:37:16.689	2025-02-04 21:21:25.286
+c357ebf9-e39c-4933-9be0-aaf280c90990	{https://api.omarcheivoire.ci/uploads/0d595e55-2e9d-46a6-9731-cbf301f2ca7b.jpeg}	RIZ LOCAL		KG	1	600.00	Cereales	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-03 11:05:59.663	2025-02-04 21:22:37.317
+36cdea6b-f8e7-4c45-9967-db4c73f1d79b	{https://api.omarcheivoire.ci/uploads/94fb6f96-08cd-4d0a-9f02-f9c099be3f93.jpeg}	Piment local 		TAS	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:09:03.205	2025-02-04 21:22:51.35
+83db1de8-22a8-494f-8205-9d445794afab	{https://api.omarcheivoire.ci/uploads/3e59d012-c019-46cc-ba95-968db9c51c69.jpeg}	courgette 		UNIT	1	200.00	Legumes	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:39:09.874	2025-02-04 21:23:30.599
+02a07c2f-f57f-4a4b-8acb-66f78753f7d3	{https://api.omarcheivoire.ci/uploads/28d6117f-5159-45a3-8735-511fadb36a75.jpeg}	citron		UNIT	3	100.00	Fruits	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:49:00.183	2025-02-04 21:24:56.477
+2b4a7e09-a3d6-4874-bcbb-279101e4a31a	{https://api.omarcheivoire.ci/uploads/84e96308-6981-417d-a7db-28ee19f89251.jpeg}	Banane douce		UNIT	3	200.00	Fruits	abb1f748-3b88-4465-a91c-3d6f9e543e54	t	2025-02-04 19:54:38.465	2025-02-04 21:26:43.327
+c9330b45-cb94-49ef-95dd-bde5888db7de	{https://api.omarcheivoire.ci/uploads/3ad2700b-7a41-48dd-b05d-172fcf170a35.jpeg}	salade		TAS	1	200.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:17:18.863	2025-02-04 23:17:18.863
+e4a459b9-163e-40ef-91e3-6185f5455ab5	{https://api.omarcheivoire.ci/uploads/3fea799e-96ac-44c5-875a-b9b389862948.jpeg}	avocat		UNIT	1	300.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:18:28.017	2025-02-04 23:18:28.017
+1129af3f-f481-43ca-bcc4-f78459b78f75	{https://api.omarcheivoire.ci/uploads/68bc2a47-d5ed-44c4-97b2-d1976f3bbaba.jpeg}	Aubergine 		TAS	1	300.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:19:36.135	2025-02-04 23:19:36.135
+e17a8dc4-1c62-457c-970d-7a2f30fe27ec	{https://api.omarcheivoire.ci/uploads/82033230-70fc-4a74-ae10-92c1105d4c9a.jpeg}	Oignons blanc		KG	1	600.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:20:33.656	2025-02-04 23:20:33.656
+9fc44c46-08c6-4791-98d2-a1057c7e5f74	{https://api.omarcheivoire.ci/uploads/ad91abda-e851-4b01-bb51-be00f7d03e08.png}	Ail		UNIT	1	100.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:23:31.454	2025-02-04 23:23:31.454
+df7d32c0-cad0-4a23-81c2-c117e543c435	{https://api.omarcheivoire.ci/uploads/66f789a1-50ab-41d3-86c3-7bc7619824ab.jpeg}	carotte		UNIT	1	200.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:25:24.896	2025-02-04 23:25:24.896
+18699194-24a1-452c-b219-7bf949d25e00	{https://api.omarcheivoire.ci/uploads/5a65ca9e-7813-473f-b500-b05995ca787c.jpeg}	persil		MORCEAUX	1	100.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:27:02.988	2025-02-04 23:27:02.988
+2960fbdd-bdb9-44f0-9dc0-35a35d128a6b	{https://api.omarcheivoire.ci/uploads/5d79aba0-ca52-4130-a75b-e1efe4dc3e7d.jpeg}	poivron		UNIT	1	100.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:28:07.404	2025-02-04 23:28:07.404
+ed7bc788-ae69-49fa-b05f-2846ee79f4f7	{https://api.omarcheivoire.ci/uploads/628b3980-eae0-47cd-aef5-6b2580a42b2d.jpeg}	concombre		UNIT	1	200.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:30:47.675	2025-02-04 23:30:47.675
+0c386008-a163-4edc-916c-9da66d303f7d	{https://api.omarcheivoire.ci/uploads/0e51edd4-5ed7-4888-8325-9f52e51ddd4a.jpeg}	aubergine violet		UNIT	1	200.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:33:33.959	2025-02-04 23:33:33.959
+8347b7ec-da2b-40d2-bebd-2cffbfc4a63f	{https://api.omarcheivoire.ci/uploads/d094b1c1-f456-4264-a4e9-7cdf2c50aefb.jpeg}	pomme de terre		KG	1	600.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:35:08.072	2025-02-04 23:35:08.072
+f8c24fcf-d16c-4d95-adb0-a599c990c1a6	{https://api.omarcheivoire.ci/uploads/26f8707c-f621-495a-91ad-743464517cfa.jpeg}	soumbara		BOITE	1	500.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:41:18.143	2025-02-04 23:41:18.143
+b22187f5-4385-4359-a415-150b66978394	{https://api.omarcheivoire.ci/uploads/70091e23-b9a3-431b-a6b3-8fc41da8e45b.jpeg}	Soumbara		UNIT	1	100.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:42:14.592	2025-02-04 23:42:14.592
+5e2911ae-a263-4d04-84a9-d2803c5424bf	{https://api.omarcheivoire.ci/uploads/f2225353-ef8c-4d26-a022-ecd18ca21053.jpeg}	piment poudre		UNIT	1	100.00	Epices	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:43:27.791	2025-02-04 23:43:27.791
+d0cc8057-6ef1-49e4-81b4-5da6cf6f8b4a	{https://api.omarcheivoire.ci/uploads/ada8d14d-ef3d-4f8d-9302-da0438cbbef4.jpeg}	PIMENT POUDRE		UNIT	1	500.00	Epices	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:45:00.743	2025-02-04 23:45:00.743
+a2e3ff24-7648-4c05-b89e-6d14cb4691fa	{https://api.omarcheivoire.ci/uploads/7eed25f9-b7a9-4fe0-8942-8cf17d2e7830.jpeg}	TOMATE 		TAS	1	200.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:48:27.79	2025-02-04 23:48:27.79
+775ef3c4-64ff-4116-b31f-7a859d31c62b	{https://api.omarcheivoire.ci/uploads/5f9afc51-c2dc-44a8-a017-a40798556830.jpeg}	piment local		TAS	1	200.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:50:34.807	2025-02-04 23:50:34.807
+d91f5e2c-0fdf-4498-92ba-0d0f7a6ef234	{https://api.omarcheivoire.ci/uploads/a1702def-b455-4119-aae3-fa93a415a579.jpeg}	pate d'arachide		BOITE	1	500.00	Autres	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:52:01.056	2025-02-04 23:52:01.056
+6e92b9c2-1ced-48ea-aa6b-ec1341c4eacc	{https://api.omarcheivoire.ci/uploads/fbe0aac9-c539-4415-8a73-83b3f475d3d9.jpeg}	pate de pistache		BOITE	1	1000.00	Autres	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:53:12.441	2025-02-04 23:53:12.441
+8cba9f94-4c2b-4d2e-ae25-10dbca70626d	{https://api.omarcheivoire.ci/uploads/c6038d29-3f98-4b09-9216-642398d27e05.webp}	djumblé		TAS	1	100.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:54:45.902	2025-02-04 23:54:45.902
+c94bc9bc-6a1b-4f80-8318-a7835386a266	{https://api.omarcheivoire.ci/uploads/0693d3dc-6799-42b7-a5cd-bf7cfc000d7b.jpeg}	apki		UNIT	1	100.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:56:10.959	2025-02-04 23:57:01.207
+07a688c4-f17e-42c8-8f65-c86529dbe933	{https://api.omarcheivoire.ci/uploads/6b4f4483-69d0-4e89-b80c-ac953401aa8f.jpeg}	gombo		TAS	1	300.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:58:53.277	2025-02-04 23:58:53.277
+ad2aeb17-8ffd-4010-803a-6f8cdf4b5703	{https://api.omarcheivoire.ci/uploads/4519f922-55db-4792-a554-23022018b87c.jpeg}	chou		UNIT	1	300.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-05 00:00:14.797	2025-02-05 00:00:14.797
+40ac105b-42ba-4763-97e3-6aa79a5c31f5	{https://api.omarcheivoire.ci/uploads/671a8857-5175-4422-9ee2-4116f8424be0.jpeg}	mil		KG	1	600.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-05 00:02:32.533	2025-02-05 00:02:32.533
+818cd10f-348f-40a4-b96b-97b900989aa4	{https://api.omarcheivoire.ci/uploads/10227e16-dc59-4e70-bd87-35f1e6a3d4d3.jpeg}	banane plantain		UNIT	4	500.00	Tubercules	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-05 00:11:41.597	2025-02-05 00:11:41.597
+796d2a2a-0835-4f6c-9dc7-2e0f56087c7b	{https://api.omarcheivoire.ci/uploads/a78c39de-c436-4d06-ad05-fa211c9a227d.jpeg}	oeuf		AUTRE	1	2500.00	Autres	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-05 00:12:54.813	2025-02-05 00:12:54.813
+9b0b2157-f82d-4312-b8b4-9223ac4bb4b4	{https://api.omarcheivoire.ci/uploads/1df7300a-6ae2-48b6-9cdc-e761a68d3e7b.jpeg}	Aubergine violet		KG	1	600.00	Legumes	d2765e5a-5857-48a6-8a2f-975cbc5c6904	t	2025-02-04 23:22:34.535	2025-02-05 00:14:19.628
+3672149a-2e1a-409c-b12b-362e1547df6a	{https://api.omarcheivoire.ci/uploads/a4cd7889-4a45-4b65-b95e-a1c779d821a3.jpeg}	oeuf	oeuf de taille moyenne 	AUTRE	1	2500.00	Autres	eb995446-cb9c-48dd-b4fb-7b928618b33c	t	2025-02-05 00:19:41.633	2025-02-05 00:19:41.633
+6fde3758-9987-4e3a-9c68-da7cab1d7aad	{https://api.omarcheivoire.ci/uploads/4ea12742-6ffb-4ca5-a90b-b44b2087ee6f.jpeg}	OEUF	oeuf de grosses taille	AUTRE	1	2700.00	Autres	eb995446-cb9c-48dd-b4fb-7b928618b33c	t	2025-02-05 00:21:54.82	2025-02-05 00:21:54.82
+445a20ec-a9a7-4f97-814e-138a11295bcd	{https://api.omarcheivoire.ci/uploads/330b9ba4-b2c4-4211-aee0-197c3206bcbc.jpeg}	viande de mouton		DEMI_KG	1	2750.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:38:13.085	2025-02-05 00:39:52.222
+707f03d7-07b5-4c67-af4d-0179f808a187	{https://api.omarcheivoire.ci/uploads/ec5849c2-350d-4cca-8dd2-761afe3102fa.jpeg}	VIANDE DE MOUTON 		KG	1	5500.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:39:02.389	2025-02-05 00:40:26.806
+660b9ea2-0aae-4c77-b395-1676f87b61b4	{https://api.omarcheivoire.ci/uploads/d12d6e31-979c-4974-89bf-9d1a27f2da5b.jpeg}	VIANDE DE CABRI		KG	1	5000.00	Legumes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:41:44.469	2025-02-05 00:41:44.469
+7138d432-66ac-4753-939c-3f85c27ba78d	{https://api.omarcheivoire.ci/uploads/b07bb8f5-358e-4c5b-8951-da254be02373.jpeg}	viande de cabri		DEMI_KG	1	2500.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:42:56.237	2025-02-05 00:42:56.237
+be169525-697a-4e40-bffe-49b26199c75a	{https://api.omarcheivoire.ci/uploads/907a6228-da53-4c91-be0a-a7bf519c6125.jpeg}	aubergine violet		UNIT	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:44:19.462	2025-02-05 01:44:19.462
+611ded83-9614-45f4-bf4a-d376f0fb5b70	{https://api.omarcheivoire.ci/uploads/94205f36-32d5-485a-87dc-9079a4d31844.jpeg}	viande de boeuf sans os		DEMI_KG	1	1750.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:31:08.7	2025-02-05 01:08:43.48
+779d600a-d6f5-48a4-9c65-4d16bca26fb1	{https://api.omarcheivoire.ci/uploads/9aa28c03-ea9b-482b-b019-2da68a0da339.jpeg}	vande de boeuf avec os		DEMI_KG	1	1500.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:32:25.348	2025-02-05 01:09:15.247
+e5af92ec-9630-4582-8fb1-71a57cd93caf	{https://api.omarcheivoire.ci/uploads/da7f8003-b115-45fb-836f-9a0c6e9a38aa.jpeg}	VIANDE DE BOEUF AVEC OS 		KG	1	3000.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:33:32.581	2025-02-05 01:09:54.523
+eff398d3-64ce-46f9-9298-9c3292102c4d	{https://api.omarcheivoire.ci/uploads/cd6d1101-f6b5-48dc-a714-4b669b7ffdad.jpeg}	VIANDE HACHEE		KG	1	3500.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:35:53.342	2025-02-05 01:12:15.584
+eb50586e-19da-4c22-83a0-36deea7af8b2	{https://api.omarcheivoire.ci/uploads/f87b1136-e058-4442-b2c8-4d0502f8b2f6.jpeg}	viande hachée		DEMI_KG	1	1750.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:36:59.917	2025-02-05 01:13:33.368
+1cca2c98-7d1a-4c5c-9326-36ca3858cb05	{https://api.omarcheivoire.ci/uploads/db8066b5-20f3-4a5a-bf3d-e31137e16941.jpeg}	queue de boeuf 		AUTRE	1	16000.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:47:13.268	2025-02-05 01:14:39.256
+3045166c-aa20-4b9f-a07f-236034f7b752	{https://api.omarcheivoire.ci/uploads/01a4d72d-e579-4f8f-a8e1-b5942f329289.jpeg}	patte de boeuf africain		UNIT	1	2500.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:48:12.555	2025-02-05 01:15:56.352
+df8c79a9-fd22-4c2b-9047-95cfacc3d3f2	{https://api.omarcheivoire.ci/uploads/b9aff505-6c32-4f72-92a4-7b5f98846409.jpeg}	rognon		KG	1	2000.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:49:59.852	2025-02-05 01:16:09.984
+c1874a7b-da9b-495c-b0d6-efa169ad6ef4	{https://api.omarcheivoire.ci/uploads/46224339-7637-45c3-997e-8792df5ded53.jpeg}	foie de boeuf 		KG	1	2500.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:54:21.157	2025-02-05 01:16:26.672
+57f2b126-4a4c-4105-8cae-3d9d2fa84556	{https://api.omarcheivoire.ci/uploads/3087d0af-6854-443a-952b-7d1015b9b05d.jpeg}	trip de boeuf		KG	1	2500.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:49:18.819	2025-02-05 01:17:58.698
+1bfb2e14-65ae-4bd8-a420-e6ab3d52a7d6	{https://api.omarcheivoire.ci/uploads/bf81930a-457a-4bb2-ae91-8b9fa36713a0.jpeg}	VIANDE DE BOEUF SANS OS		KG	1	3500.00	Viandes	7e2ded69-ffff-4807-86d0-21f3a94e4ce8	t	2025-02-05 00:29:49.422	2025-02-05 01:20:15.217
+887f5494-e802-49a9-a717-9eaca98a5c46	{https://api.omarcheivoire.ci/uploads/da198703-b1f0-4325-aa18-d3829e8974d4.jpeg}	SALADE		UNIT	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:24:13.708	2025-02-05 01:24:13.708
+5b8a71fe-a4a3-4f26-b84f-db30528fb7a7	{https://api.omarcheivoire.ci/uploads/db8eadde-52aa-450d-b476-34544bf84c48.jpeg}	PIMENT 		TAS	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:25:10.125	2025-02-05 01:25:10.125
+e7c1d953-f13b-432a-953b-b76b579799c0	{https://api.omarcheivoire.ci/uploads/23534ee1-61cd-4b51-8f70-1f50e446339c.jpeg}	piment		TAS	1	500.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:26:00.74	2025-02-05 01:26:00.74
+43507b35-9f3f-4ebb-a7bd-182002c45b36	{https://api.omarcheivoire.ci/uploads/4d4537c6-a11f-4af0-b6cd-0d20c9fe9ab9.png}	ail		UNIT	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:26:53.556	2025-02-05 01:26:53.556
+b0850439-1e64-477b-8e78-b8b15d255d66	{https://api.omarcheivoire.ci/uploads/7a54cf5d-3ac8-42f5-9cfd-c55ac19aa2c2.png}	AIL		UNIT	2	300.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:28:05.452	2025-02-05 01:28:05.452
+1cf3db93-5dda-4598-adf1-96be822e42e6	{https://api.omarcheivoire.ci/uploads/b80cf8b9-a95d-4084-a249-ce0b178da228.jpeg}	AUBERGINE		TAS	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:29:40.212	2025-02-05 01:29:40.212
+3f24e2b7-b58e-468e-a6db-9211d9a434c3	{https://api.omarcheivoire.ci/uploads/9f2434f8-ad68-4fee-8492-028c5ffc4b70.jpeg}	aubergine 		TAS	1	500.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:30:39.261	2025-02-05 01:30:39.261
+ecc2b45f-3e7b-40b0-878e-ed2cfcc5d0a6	{https://api.omarcheivoire.ci/uploads/b12b0a72-a23e-4c17-9189-7ee03d79fac2.jpeg}	banane plantain		TAS	1	500.00	Tubercules	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:33:19.675	2025-02-05 01:33:19.675
+9bd1388c-3c37-40b7-be79-9badc70b79c8	{https://api.omarcheivoire.ci/uploads/cde5e711-7c44-47f4-96bd-a138dfabb125.jpeg}	pomme de terre		KG	1	600.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:34:26.796	2025-02-05 01:34:26.796
+76dfc28b-0ede-4e0b-a938-f97e86a34d73	{https://api.omarcheivoire.ci/uploads/12b59e48-a34f-458e-bae5-2e7c70a64826.jpeg}	feuille d'oignon		UNIT	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:35:49.319	2025-02-05 01:35:49.319
+9df940f7-27cf-4e59-95c9-6b81e547237f	{https://api.omarcheivoire.ci/uploads/eba0b8f9-d6bc-4232-af83-762e62fd4193.jpeg}	chou		UNIT	1	300.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:37:01.318	2025-02-05 01:37:01.318
+f69baab1-98a9-4895-b84a-1cf692881364	{https://api.omarcheivoire.ci/uploads/6783793b-48a8-46a2-94e4-c6016430fe37.jpeg}	concombre		UNIT	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:38:19.847	2025-02-05 01:38:19.847
+6962fb61-3a0e-439c-80b2-c6ce28aa41d0	{https://api.omarcheivoire.ci/uploads/57fb3cac-a88c-4086-8c4a-7c9835df28c4.jpeg}	CONCOMBRE 		KG	1	700.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:39:14.806	2025-02-05 01:39:14.806
+0944886a-eb19-4244-8d7b-2b18cff4dcc6	{https://api.omarcheivoire.ci/uploads/19b6fa31-89d7-4ff3-a423-7c63c44e6d55.jpeg}	POIVRON		UNIT	1	100.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:40:16.39	2025-02-05 01:40:16.39
+c683781a-b397-4021-969d-5237bdcc1925	{https://api.omarcheivoire.ci/uploads/4e3ccdbd-0087-43a3-b23c-aa876bcb42a4.jpeg}	poivron		KG	1	1000.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:41:28.782	2025-02-05 01:41:28.782
+29a4dfd3-e18b-4d4c-83a6-cc582e90d206	{https://api.omarcheivoire.ci/uploads/19112c56-f029-4ff6-84ee-5353e84b7c67.jpeg}	carotte		UNIT	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:42:43.862	2025-02-05 01:42:43.862
+9092dc07-163a-4108-bf00-6ccba331c3f9	{https://api.omarcheivoire.ci/uploads/cebc25cb-db77-4856-9fd9-a97bc273f243.jpeg}	oignon blanc		KG	1	600.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:45:12.719	2025-02-05 01:45:12.719
+0e2713b4-1717-4910-bcfa-7743bf2b909f	{https://api.omarcheivoire.ci/uploads/d6440a85-84cc-4a58-911c-fe68896568e8.jpeg}	oignon violet		KG	1	600.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:46:09.824	2025-02-05 01:46:09.824
+124bff46-197e-4034-91aa-e5212e909b48	{https://api.omarcheivoire.ci/uploads/0506eb4b-2e6b-4db4-8f66-2824bfe176b0.jpeg}	courgette		UNIT	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:48:23.582	2025-02-05 01:48:23.582
+96c27141-d98f-4d80-ab31-c2687bd84798	{https://api.omarcheivoire.ci/uploads/837ad0ce-f4a7-4977-af90-b22766829041.jpeg}	haricot vert		TAS	1	100.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:49:30.367	2025-02-05 01:49:30.367
+6c402c74-c183-47db-9370-869ae19d40bb	{https://api.omarcheivoire.ci/uploads/a4e98ba8-b800-41e6-8d59-5a5a6b65ff64.jpeg}	tomate 		TAS	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:50:37.31	2025-02-05 01:50:37.31
+60697377-865c-4e6d-bd2b-532628fbdf47	{https://api.omarcheivoire.ci/uploads/29d0cff6-6fbf-4d4b-bf61-6849a300030d.jpeg}	avocat		UNIT	1	200.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:51:35.888	2025-02-05 01:51:35.888
+342ce0cb-9ac9-407c-9949-49799395b00f	{https://api.omarcheivoire.ci/uploads/6973c75a-194c-4be5-a57a-a578ff88a5c4.jpeg}	pate d'arachide 		BOITE	1	500.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:53:20.054	2025-02-05 01:53:20.054
+b942fca1-9b16-43ec-945d-b1adad9c8735	{}	banane douce 		UNIT	4	300.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:54:06.727	2025-02-05 01:54:06.727
+7079b7e2-79fb-4110-b886-ae88dc6dc042	{https://api.omarcheivoire.ci/uploads/8d634fb4-f6b6-4d90-bbc1-7760ae7e3174.jpeg}	orange 		UNIT	4	300.00	Fruits	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:55:10.831	2025-02-05 01:55:10.831
+a9961cba-fb5c-4428-bcc6-da57aa5d8533	{https://api.omarcheivoire.ci/uploads/03b3e59e-ef81-43b8-a827-75ef19301c0b.jpeg}	ANANAS		UNIT	1	300.00	Fruits	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:56:16.783	2025-02-05 01:56:16.783
+a8d4e6c4-eb87-400c-a805-ebd03ebf26e2	{}	CLEMENTINE 		UNIT	4	1000.00	Fruits	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:57:37.583	2025-02-05 01:57:37.583
+4f0430de-dad0-4a7a-8490-a0db89a137db	{}	RAISIN		BOITE	1	500.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:58:32.902	2025-02-05 01:58:32.902
+0c2b0188-9abc-4e12-8303-392c2c4817eb	{https://api.omarcheivoire.ci/uploads/672c30b3-869e-416c-aeac-378d351a1bc1.jpeg}	CITRON		UNIT	2	100.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 01:59:36.982	2025-02-05 01:59:36.982
+b1c8127a-56d4-4a47-a687-759ff433b5d7	{https://api.omarcheivoire.ci/uploads/4ed6ec72-0a02-48dd-ab56-5560ffffdeef.jpeg}	HUILE ROUGE 		UNIT	1	2000.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 02:01:59.192	2025-02-05 02:01:59.192
+5e1d13b3-f183-4506-a4d4-3ed9c7cad0ef	{}	MOUTARDE		UNIT	1	800.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 02:03:15.934	2025-02-05 02:03:15.934
+9be878bf-249f-4567-b526-144ea7ddcef0	{}	FEUILLE DE LORIE		UNIT	1	100.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 02:04:47.365	2025-02-05 02:04:47.365
+1c88f42f-1e1e-49fa-b627-bc120293e364	{https://api.omarcheivoire.ci/uploads/61457bf4-c791-4534-9b24-2e65fa6a4c26.jpeg}	Papaye		UNIT	1	250.00	Fruits	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:09:13.669	2025-02-05 10:09:13.669
+7cf11de6-4516-4931-acf9-32a847b0d0f7	{https://api.omarcheivoire.ci/uploads/792bae26-acb0-434d-8738-217af9b0ac1a.jpeg}	Papaye  		UNIT	1	200.00	Fruits	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:09:58.174	2025-02-05 10:09:58.174
+5c745676-c648-4972-b3e2-efb78882f65a	{https://api.omarcheivoire.ci/uploads/c3ae34ab-ccfa-4be8-bd8e-c3b3a8986d84.jpeg}	Papaye   		UNIT	1	300.00	Fruits	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:11:04.109	2025-02-05 10:11:04.109
+e77464fa-5990-4dd9-abcb-2f0551b97433	{https://api.omarcheivoire.ci/uploads/e31491c2-1029-49cd-b805-93c4bccbbe85.jpeg}	Cacahuéte sucré		UNIT	1	500.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:13:44.349	2025-02-05 10:13:44.349
+fab1e0c4-ca2a-4b9b-985c-6568b5488ec7	{https://api.omarcheivoire.ci/uploads/aaa0f6b4-1049-45dc-b533-9bff97f9cb9a.jpeg}	Ccahuète sucré 		UNIT	1	1500.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:14:33.366	2025-02-05 10:14:33.366
+2a9a012a-3ae5-41e4-b9ca-7ccb404c53bf	{https://api.omarcheivoire.ci/uploads/438d9c5c-30a6-4b60-903c-0260f06b6b32.jpeg}	Tamarin (Tommy)		KG	1	1500.00	Fruits	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:16:45.092	2025-02-05 10:16:45.092
+1c6ad1d7-41bc-4512-a860-0323388bbb06	{https://api.omarcheivoire.ci/uploads/fca2088a-7821-47d3-aa19-5e2974bda19e.png}	couscous		KG	1	1200.00	Cereales	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:18:16.093	2025-02-05 10:18:16.093
+2c0f4166-08ed-41db-b6c9-b55c10d06846	{https://api.omarcheivoire.ci/uploads/d899bf88-a27c-466d-bb57-716f7ac12d64.png}	Couscous 		DEMI_KG	1	600.00	Cereales	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:18:45.462	2025-02-05 10:18:45.462
+2e6aee7c-42c7-4882-bda5-7ffeeb59eec2	{https://api.omarcheivoire.ci/uploads/fed38be1-da88-4e9c-acce-bdde703166b4.jpeg}	bouteille Huile rouge		UNIT	1	500.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:20:07.254	2025-02-05 10:20:07.254
+2e2bcad6-c2e8-4090-b1e4-1f150f693718	{https://api.omarcheivoire.ci/uploads/e0408dab-6c09-46a1-a488-aca39f66da66.jpeg}	Bouteille Huile rouge		UNIT	1	1500.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:21:57.035	2025-02-05 10:21:57.035
+65f1fabe-a634-46c4-9305-0b9a77084c0a	{https://api.omarcheivoire.ci/uploads/9491ab2e-2837-49a6-a423-0b99ca34a7f3.jpeg}	1/2 litre Huile de palm		UNIT	1	800.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:24:50.541	2025-02-05 10:24:50.541
+c9eb511b-ff13-4c56-937f-4f284901a1c9	{https://api.omarcheivoire.ci/uploads/7e5beee0-2696-4dcb-8b0e-3fbc3070d2c1.jpeg}	1 litre Huile de palme		UNIT	1	1900.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:25:55.765	2025-02-05 10:25:55.765
+97bd05ce-938b-4ec2-8d94-359913dd1a77	{}	Vinaigre		UNIT	1	500.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:28:48.787	2025-02-05 10:28:48.787
+594dd561-c171-4bea-9860-218b4992ab74	{https://api.omarcheivoire.ci/uploads/dd36b38c-7055-4aec-9383-b0db9b8f63b6.jpeg}	Moutarde		UNIT	1	800.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:29:18.156	2025-02-05 10:29:18.156
+97a89c44-c09e-43c6-9878-05e9e1cf9275	{https://api.omarcheivoire.ci/uploads/3644d568-69a9-4f70-b2d8-135e8457fe77.jpeg}	Maîs		KG	1	1000.00	Cereales	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:35:26.308	2025-02-05 10:35:26.308
+0ea2ff39-38b6-42d0-9cc8-693cd48c0a80	{https://api.omarcheivoire.ci/uploads/3ef2689c-12c9-4f3b-8f15-70de3773960a.jpeg}	Maîs 		DEMI_KG	1	500.00	Cereales	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:36:01.444	2025-02-05 10:36:01.444
+b1d559cd-e0e1-4dd7-9f59-003459c7829b	{https://api.omarcheivoire.ci/uploads/75f244b1-a109-4f8d-9590-6a58d9f7ab64.jpeg}	Tomate pate		AUTRE	1	500.00	Autres	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:37:08.611	2025-02-05 10:37:08.611
+f494a967-f5f2-4d17-8efe-ce66c38f589c	{https://api.omarcheivoire.ci/uploads/0120dfc8-fd04-448c-b952-9fa980dde421.jpeg}	paquet de feuille de laurier		UNIT	1	500.00	Epices	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:46:12.637	2025-02-05 10:46:12.637
+5669d078-ba96-4327-848d-651743393570	{https://api.omarcheivoire.ci/uploads/3d6d5944-abab-498c-97cf-bacfd8999233.jpeg}	Piment sec		UNIT	1	250.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:47:51.115	2025-02-05 10:47:51.115
+4d2688ec-f9e0-4fd4-80b7-5160110ae499	{https://api.omarcheivoire.ci/uploads/dc141980-ea62-428f-b227-8a3e1f6a9406.webp}	Djoumgblé		BOITE	1	250.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:49:06.14	2025-02-05 10:49:06.14
+34d4b2cd-75b1-4338-9c93-f1d86efa6baa	{https://api.omarcheivoire.ci/uploads/071f009b-3ee5-47b2-a045-972b0bcdb437.webp}	Djoumgblé 		BOITE	1	500.00	Legumes	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:49:50.261	2025-02-05 10:49:50.261
+286771bb-de5a-4f4d-ad5d-cb666ad23322	{https://api.omarcheivoire.ci/uploads/7a025ada-06bc-4312-ad2a-a599eb3c9245.png}	Canelle		UNIT	1	100.00	Epices	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:52:59.3	2025-02-05 10:52:59.3
+44dafc97-3d7c-4175-b914-609ff48286aa	{https://api.omarcheivoire.ci/uploads/c9e4f9e4-5485-4791-8d08-79326c156bd3.jpeg}	Clou de girofle		BOITE	1	500.00	Epices	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:54:42.268	2025-02-05 10:54:42.268
+b12801d5-15aa-4a56-a7b2-8f420cff84e2	{https://api.omarcheivoire.ci/uploads/e86b4cee-4236-4a56-bf6d-d8995ea0451e.jpeg}	Poivre blanc		BOITE	1	500.00	Epices	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:57:07.212	2025-02-05 10:57:07.212
+73c8ac5a-36f0-484e-91c3-997e6b9934d8	{https://api.omarcheivoire.ci/uploads/40b21549-bc63-4135-8994-357e1b379be2.jpeg}	Herbe de provence		BOITE	1	500.00	Epices	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 10:59:27.067	2025-02-05 10:59:27.067
+3e891dd8-0156-4d47-bd7a-1c8997b3b597	{https://api.omarcheivoire.ci/uploads/d8b5fa6f-b07e-412a-8790-1a3e724a43d9.jpeg}	Soumbala		BOITE	1	500.00	Epices	aae09524-575a-43e2-ba44-90bc81fb5450	t	2025-02-05 11:00:09.723	2025-02-05 11:00:09.723
+67e59a9e-3ed1-4af2-a5d8-0167a03f0e4e	{https://api.omarcheivoire.ci/uploads/521d2dbc-c611-4635-bb06-05d93b76b08d.jpeg}	Purée de piment rouge 		BOITE	1	3000.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:10:09.358	2025-02-12 17:10:09.358
+88c7f2ab-f9bb-4d73-a721-f7ef1955220a	{https://api.omarcheivoire.ci/uploads/8907de18-878c-4f3c-8e1b-2e15bafdfdb7.jpeg}	Purée d'Ail 		BOITE	1	2500.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:13:21.796	2025-02-12 17:13:21.796
+fbb57033-e4f5-4788-b576-d70e98b679cd	{https://api.omarcheivoire.ci/uploads/5ac78f49-1922-4cbc-b7d4-fa1f0666fc29.jpeg}	Purée de gingembre 		BOITE	1	2000.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:14:56.556	2025-02-12 17:14:56.556
+aa882a32-151a-45ab-b2ac-dcaf2344d30f	{https://api.omarcheivoire.ci/uploads/3ce91a80-d4d8-47bc-ae75-f09e9c213d3d.jpeg}	Poudre de poisson 		BOITE	1	3000.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:16:13.549	2025-02-12 17:16:13.549
+ce7025a0-6c76-4340-82a9-56a4ded623b1	{https://api.omarcheivoire.ci/uploads/a6c52fc4-9020-41dc-92ec-692fec612aea.jpeg}	Bouillon Narurel 		SAC	1	3500.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:18:51.268	2025-02-12 17:18:51.268
+17e1bc9a-4d38-46ac-9a1d-d25725f4ee75	{https://api.omarcheivoire.ci/uploads/e2f4e201-7331-4193-9a53-7d66eeeb3af7.jpeg}	Poudre de piment assaisonnée 		UNIT	1	2000.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:21:16.406	2025-02-12 17:21:16.406
+0d7ec0a2-d5ff-440d-8caa-5d6a9cb71ca4	{https://api.omarcheivoire.ci/uploads/fabd8770-f57e-47a3-90d1-d61827313fc2.jpeg}	Marinade poulet/poisson 		BOITE	1	3500.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:22:38.637	2025-02-12 17:22:38.637
+922b0691-f641-46e1-9206-18edeb5a5315	{https://api.omarcheivoire.ci/uploads/6bb55a94-0436-4bb5-af8f-653858bfe0d7.jpeg}	Purée de piment vert 		BOITE	1	2500.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:23:54.115	2025-02-12 17:23:54.115
+ed3e12ce-1670-426a-81ce-3e0bfd173dca	{https://api.omarcheivoire.ci/uploads/c9f4afb6-9cc6-4011-8457-b7e3afbd8fb3.jpeg}	Poudre de crevette		UNIT	1	3000.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:25:19.117	2025-02-12 17:25:19.117
+fb2389c4-ad70-4a20-bdef-841ce8392059	{https://api.omarcheivoire.ci/uploads/cb9620fd-d73c-430e-a366-b9b677cb1175.jpeg}	Pack complet 		UNIT	1	27000.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:27:12.092	2025-02-12 17:27:12.092
+0e6c9820-0e75-42a0-a522-9447e9142cd5	{https://api.omarcheivoire.ci/uploads/0481eb7e-7b26-4e24-98e8-fed439d3480f.jpeg}	Pack frais 		UNIT	1	13000.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:29:10.252	2025-02-12 17:29:10.252
+d45f403b-bfd6-4c53-abd9-592bffa35f45	{https://api.omarcheivoire.ci/uploads/db6bcfaa-3d6b-4e58-a09a-af4aaf22678f.jpeg}	Pack sec		UNIT	1	14000.00	Epices	f536ed84-04ac-4a92-b976-ebe377cc4832	t	2025-02-12 17:30:06.101	2025-02-12 17:30:06.101
+56420be8-0e74-4668-b36d-0bcc9e60fa5d	{https://api.omarcheivoire.ci/uploads/d99f2764-bedd-4a13-87da-ac67d21fedc1.jpeg}	Gésier 		KG	1	2500.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 10:57:45.366	2025-02-13 10:57:45.366
+093741c6-868c-4cb0-bf09-4eaa2c079537	{https://api.omarcheivoire.ci/uploads/d2c637b8-f679-4eb1-be3c-0a6210d64fbe.jpeg,https://api.omarcheivoire.ci/uploads/afd96073-fd30-4fc7-bb14-8ee4cddf15db.jpeg}	Crabe		KG	1	5500.00	Mer	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 11:13:50.683	2025-02-13 11:13:50.683
+9722d4bd-e4e1-4348-b9e3-cbdc316e4a63	{https://api.omarcheivoire.ci/uploads/a17c0c1c-ee40-4ae8-8305-d03d00a6dac1.jpeg}	Grenouille 		UNIT	1	250.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 11:16:26.656	2025-02-13 11:16:26.656
+d3e2fcd1-cafd-4d37-9fef-c08579e527c0	{https://api.omarcheivoire.ci/uploads/8ac90d2d-d8c9-4032-a151-bd8bea22fa68.jpeg}	Foie		KG	1	1800.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 11:20:16.419	2025-02-13 11:20:16.419
+62de0c0a-6a83-46e9-9b15-a3a31d423c54	{https://api.omarcheivoire.ci/uploads/42c5defe-a0cb-46b1-ad44-e4d2adaff6fe.jpeg}	Capitaine de lagune		KG	1	4000.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 11:27:50.431	2025-02-13 11:30:37.874
+e8d8e22b-26d9-492f-9a12-4fd9b4a8e158	{https://api.omarcheivoire.ci/uploads/de261199-21b8-423e-b518-b3f4dea36b93.jpeg}	Ailes dindes 		KG	1	3500.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 11:34:22.639	2025-02-13 11:35:49.908
+3bbc816b-6f86-40f3-9cb6-e84e2c8b3b04	{https://api.omarcheivoire.ci/uploads/ad987ab8-2f43-436a-b26c-facb5d4e019a.jpeg}	Croupion		KG	1	3500.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 11:39:04.84	2025-02-13 11:39:04.84
+a9d60eb6-6cf7-41af-a3bc-8642b06436de	{https://api.omarcheivoire.ci/uploads/181543da-0a9e-4883-96d4-c2ab92dfcb27.jpeg,https://api.omarcheivoire.ci/uploads/a3acb62d-49cb-4b5d-8de5-72850187711f.jpeg}	Poitrine de mouton 		KG	1	3000.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 11:40:15.933	2025-02-13 11:43:03.631
+a591e68d-0642-48cc-9117-e6962d61ed94	{https://api.omarcheivoire.ci/uploads/f681195d-0e80-4293-9290-f3f8a2cdc2e5.jpeg}	Carpe		KG	1	4000.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 11:44:17.832	2025-02-13 11:45:57.34
+9768affc-d662-4d70-bb56-509ede146b54	{https://api.omarcheivoire.ci/uploads/7d708b66-17ea-4e82-b21d-5f7538e2a95e.jpeg}	Patte de bœuf 		KG	1	1500.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 11:47:52.936	2025-02-13 11:49:47.673
+84dedaea-ceb3-483d-a764-58f826672150	{https://api.omarcheivoire.ci/uploads/8e6856c5-613d-48c5-8bb3-3f5e813594ea.jpeg}	Huile		UNIT	1	1300.00	Autres	b272839b-33ad-4a52-b566-9c78f89e4452	t	2025-02-13 12:32:49.262	2025-02-13 12:32:49.262
+94d04d46-84f8-4471-bd0a-5dfb9492ddeb	{https://api.omarcheivoire.ci/uploads/e139770e-2ad5-47c0-a6f0-f10575ffbc19.jpeg}	Mérou	Poisson importé 	KG	1	2000.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 13:51:15.635	2025-02-13 13:51:15.635
+826ded3f-f428-4031-9873-5eefaa9ad5c4	{https://api.omarcheivoire.ci/uploads/fca30044-bfd6-4d39-94fd-70b416d2e4dc.jpeg}	Pâtes de poulet 		KG	1	2300.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 13:58:19.985	2025-02-13 13:58:19.985
+b3ac64ee-ac67-4150-be38-67cae582a4f9	{https://api.omarcheivoire.ci/uploads/440bb106-0d37-4ef5-9243-858422a8e571.jpeg}	Lotte	Poisson de mer à chaire blanche faux sol	KG	1	3000.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 14:01:29.299	2025-02-13 14:03:06.765
+2d53e1fe-a46d-4cd9-9886-e42260b1c8eb	{https://api.omarcheivoire.ci/uploads/87182fce-90a9-4f02-a47d-a5d85d504bab.jpeg}	Patate 		TAS	1	500.00	Tubercules	b272839b-33ad-4a52-b566-9c78f89e4452	t	2025-02-13 12:30:48.015	2025-02-14 09:29:10.083
+8ff82483-30f9-471a-ae6c-aafc015eebb7	{https://api.omarcheivoire.ci/uploads/0b979c33-1063-468a-9b8d-564cd2b68038.jpeg}	Banane plantain 		TAS	1	500.00	Tubercules	b272839b-33ad-4a52-b566-9c78f89e4452	t	2025-02-13 12:31:36.058	2025-02-14 09:29:23.5
+bf64f4c6-d8e2-4022-8778-c6b2a5dcf0bf	{https://api.omarcheivoire.ci/uploads/8b74b948-e7e9-4087-a027-15c27c9364f9.jpeg}	Maquereau 	Poisson importé 	KG	1	1500.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 14:04:18.444	2025-02-13 14:04:18.444
+7a4afc2f-1df6-46f2-bdfe-c627a698ee92	{https://api.omarcheivoire.ci/uploads/9f31af3d-c859-4100-aca6-3ce31051cf66.jpeg}	Gros capitaine	Pêche du Nil 	KG	1	4500.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 14:05:36.018	2025-02-13 14:05:36.018
+6fb2ed10-ac01-451f-87e0-52580808766d	{https://api.omarcheivoire.ci/uploads/2e1e493f-1608-4693-8849-8b59b6e4797c.jpeg}	Saint pierre	Poisson de mer local	KG	1	4500.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 14:07:03.093	2025-02-13 14:07:03.093
+b0f82d3f-c8ba-48b4-9985-4d44b466b3bf	{https://api.omarcheivoire.ci/uploads/9e858e8e-f594-4547-87a2-1c5318fd29f0.jpeg}	Adjuévant 	Adjuévant sosso	BOITE	1	500.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-13 14:09:18.38	2025-02-14 08:16:49.033
+eb369eac-2b0a-45b1-89e8-663bf856ef12	{https://api.omarcheivoire.ci/uploads/b6911a10-c33e-4bd3-a5cc-1edec9abfb78.jpeg}	Carpe blanche 	Poisson de mer local	KG	1	3500.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:18:31.935	2025-02-14 08:18:31.935
+dbb2c034-077b-45e3-a30a-58ae8df7be92	{https://api.omarcheivoire.ci/uploads/192cf7ee-2c9b-4d19-acfb-ad449bcfddbc.jpeg}	Huile rouge 		MORCEAUX	1	2000.00	Autres	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:21:44.573	2025-02-14 08:21:44.573
+c4c6ef20-e7fe-4986-bd0c-05e9bb023c02	{https://api.omarcheivoire.ci/uploads/952f649e-d12b-42b2-bcd9-32fbfc1f2b26.jpeg}	Chinchar	Poisson importé 	KG	1	1500.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:24:51.906	2025-02-14 08:24:51.906
+565eafba-ed8b-46c6-b718-17f82ba45995	{https://api.omarcheivoire.ci/uploads/47040361-cb6d-43fb-a42f-9a326f4389c3.jpeg}	Machoiron d’eau douce 	Poisson local 	KG	1	3500.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:26:22.726	2025-02-14 08:26:22.726
+2d50b4b8-a3a5-411e-b291-8143ec480316	{https://api.omarcheivoire.ci/uploads/738631fb-677c-4b78-8213-7fdb5ac9bc70.jpeg}	Sosso	Poisson en carton importé 	KG	1	2000.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:28:00.834	2025-02-14 08:28:00.834
+3a7b145a-678d-476e-a19e-0a64560784a7	{https://api.omarcheivoire.ci/uploads/eca38ce6-55a2-4a6a-8519-586797ea59a0.jpeg}	Carpe importé 	Tilapia en carton	KG	1	1700.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:30:57.808	2025-02-14 08:30:57.808
+f685983f-f2e1-4295-85a8-cb63a026ca67	{https://api.omarcheivoire.ci/uploads/0ec8f274-81b6-40d3-9c6f-1a6255526e69.jpeg}	Poulet de chair		KG	1	2500.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:36:49.998	2025-02-14 08:36:49.998
+066b2445-f297-4583-b741-81c5bab6a257	{https://api.omarcheivoire.ci/uploads/16939ba5-42d8-43a2-a4e5-6ac6ed9398a9.jpeg}	Calamars 	Produit de mer très agréable 	KG	1	3500.00	Mer	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:38:02.858	2025-02-14 08:38:02.858
+16c2d0f6-a6f3-417a-aab5-5330444901ff	{https://api.omarcheivoire.ci/uploads/30c8df3d-cd98-4362-9d19-a4bcd6de3f0f.jpeg,https://api.omarcheivoire.ci/uploads/5ad67483-9648-4f9c-ae2f-c93c9b34b6d6.jpeg}	Queue de bœuf importé 		KG	1	5000.00	Viandes	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:40:23.057	2025-02-14 08:40:23.057
+9c794812-7638-427c-b32e-721b7d233812	{https://api.omarcheivoire.ci/uploads/fa0a3ef2-bf4b-4de1-9c4f-2555fcf97e08.jpeg}	Sosso local 	Poisson de mer ivoirienne  très bon goût 	KG	1	4000.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:42:04.137	2025-02-14 08:42:04.137
+91c602b8-6f7f-4aea-a8b0-702992b172dd	{https://api.omarcheivoire.ci/uploads/211cbe56-8ede-44b0-95fb-98a873881cbf.jpeg}	Sole de mer	Poisson de mer pour grillades 	KG	1	5000.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:44:14.54	2025-02-14 08:44:14.54
+a6f46130-efd2-4240-8e79-a8db451c2455	{https://api.omarcheivoire.ci/uploads/d667a2ae-e1bf-4b4d-a587-685cb04b8c6f.jpeg}	Crevette 	Très bon CRUSTACÉS 	KG	1	6500.00	Mer	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:45:07.896	2025-02-14 08:45:07.896
+9e656d31-700e-493b-b41f-19ae1ec981fb	{https://api.omarcheivoire.ci/uploads/c60910fc-dae1-4df5-b5e1-e11bc14858a1.jpeg}	Gambas		KG	1	12000.00	Mer	25644fa0-fec4-4fb9-a230-d70af0039bed	t	2025-02-14 08:45:46.158	2025-02-14 08:45:46.158
+6d045065-82c5-470c-a555-d842528bbd5c	{https://api.omarcheivoire.ci/uploads/466fc4e7-14df-4812-a833-3d67b803bfaf.jpeg}	Carpe		KG	1	2000.00	Poissons	275fdd98-ba8a-48e3-9d74-3fca6d12ef15	t	2025-02-14 11:57:16.75	2025-02-14 11:57:16.75
+24db884c-d40b-4d1a-a9d4-a320ed189771	{https://api.omarcheivoire.ci/uploads/4b41f11b-14fa-4598-9d6b-f981a801633f.jpeg}	Sosso		KG	1	3500.00	Poissons	275fdd98-ba8a-48e3-9d74-3fca6d12ef15	t	2025-02-14 11:58:44.448	2025-02-14 11:58:44.448
+9561e58c-f2bb-4cd6-97ef-e93d664ef3b0	{}	Belle dame 		KG	1	2000.00	Poissons	25644fa0-fec4-4fb9-a230-d70af0039bed	f	2025-02-14 12:04:36.943	2025-02-14 12:10:16.636
+37e5a920-6578-44e0-b8f0-e522d12738ff	{https://api.omarcheivoire.ci/uploads/03ffb3ba-a4d9-491f-8328-1841813a7942.png}	Viande de porc	Porc locale	KG	1	2800.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:41:19.112	2025-03-06 15:41:19.112
+a316f2ef-b252-4154-80d0-a9bdf3fcb7bd	{https://api.omarcheivoire.ci/uploads/7f176fa4-3e6e-41b6-a8a1-13d82f25952b.jpeg}	Cuisse de poulet		KG	1	3000.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:52:15.468	2025-03-06 15:52:15.468
+320ebf0f-b251-4d0d-8cfe-ed83cadf9e9b	{https://api.omarcheivoire.ci/uploads/2b640ec4-bc2b-4569-8d3e-215aa12492cf.jpeg}	Côtelettes de porc	Normal (en carton)	SAC	1	10000.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:30:47.712	2025-03-06 15:46:44.101
+82994c1a-1792-499c-9197-4d49a99fbf88	{https://api.omarcheivoire.ci/uploads/2230e534-33b3-4319-9495-602c1ba2feb4.jpeg}	Côtelettes de porc 	Semi charnues (le carton)	SAC	1	10500.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:33:29.203	2025-03-06 15:47:08.292
+f335f5fe-17ec-4462-9a1d-ac83cda0581a	{https://api.omarcheivoire.ci/uploads/af4847c1-6435-453a-9257-c8679da89072.jpeg}	Pattes de porc	Long( le carton)	SAC	1	10500.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:36:52.947	2025-03-06 15:47:39.42
+4cd03cdf-8de7-43f2-a061-c05fdbc14a25	{https://api.omarcheivoire.ci/uploads/609b14c0-a01b-4ad6-9f55-2e3d202d777c.jpeg}	Pattes de porc 	Court (le carton)	SAC	1	10000.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:39:02.475	2025-03-06 15:47:50.893
+a4367b0e-4168-4284-be0d-3d0330d3aade	{https://api.omarcheivoire.ci/uploads/013efcb4-a6fa-4e5c-8268-dc967e175ba6.jpeg}	Rognon	Frais	KG	1	2000.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:49:17.507	2025-03-06 15:49:17.507
+712c9e3d-8070-4662-8122-65a6634b89f9	{https://api.omarcheivoire.ci/uploads/a3c16cb8-695a-4bbc-b076-de984fdc4b75.jpeg}	Poulet de chair	Entier 800/700	AUTRE	1	3000.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:51:09.757	2025-03-06 15:51:09.757
+3dcef5e4-1ba5-4d19-a5df-9eccee342dc0	{https://api.omarcheivoire.ci/uploads/9ba1f566-9851-441f-b77d-5f387fd40eff.jpeg}	Pondeuse frais		KG	1	4500.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:53:52.169	2025-03-06 15:53:52.169
+797825a4-b439-490b-93e1-1f5f94a613c8	{https://api.omarcheivoire.ci/uploads/0f35ba79-b0cc-45a9-9a1d-ab219c1b8fed.jpeg}	Pondeuse fumée		KG	1	4000.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:54:44.923	2025-03-06 15:54:44.923
+92e8fe44-a371-49c9-9832-5e494f907a2e	{https://api.omarcheivoire.ci/uploads/266fb1bb-3d76-47a9-859c-9697dda28e9a.jpeg}	Gésiers 		KG	1	3000.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:55:32.412	2025-03-06 15:55:32.412
+00aedd7b-e919-4d23-bdc7-f7e081a03ed7	{https://api.omarcheivoire.ci/uploads/e0061d9d-32ca-4dfa-8095-034090886b91.jpeg}	Pattes de poulet		KG	1	3000.00	Viandes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:56:24.433	2025-03-06 15:56:24.433
+ac8e0bd8-5ba4-48e4-863d-1f1a3bc8b537	{https://api.omarcheivoire.ci/uploads/bcd894d6-387a-4734-9446-a55b9b542fff.jpeg}	Poisson chincha		KG	1	1500.00	Poissons	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 15:57:41.132	2025-03-06 15:57:41.132
+8d36091c-9b18-4050-93de-ecd6f636821c	{https://api.omarcheivoire.ci/uploads/8874f0c6-9966-463b-9a14-b9d6cfb03ec0.jpeg}	Poisson chincha caton		KG	20	26000.00	Poissons	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:00:18.821	2025-03-06 16:01:51.473
+b243ab91-483b-4829-8f39-988874052f40	{https://api.omarcheivoire.ci/uploads/3c332be4-5fee-4441-bd4e-c7353940455a.jpeg}	Poisson Brochet		KG	1	3000.00	Poissons	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:03:33.805	2025-03-06 16:03:33.805
+94fcd49e-2bc7-47cc-be13-0f41e8bbee7d	{https://api.omarcheivoire.ci/uploads/cf505638-dd12-4933-8512-0da9ec463be8.jpeg}	Poisson maquereau 		KG	1	1800.00	Poissons	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:05:00.939	2025-03-06 16:05:00.939
+0b306af7-c9ec-43a7-9889-0ec5fe00f2a8	{https://api.omarcheivoire.ci/uploads/74fee819-b2aa-4e43-be04-6114089a20b5.jpeg}	Poisson sosso		KG	1	2500.00	Poissons	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:05:52.341	2025-03-06 16:05:52.341
+c421d8c8-1b39-4f12-8c23-54e3480a6d89	{https://api.omarcheivoire.ci/uploads/16cbf5a9-feda-409c-a4c1-7d126f91c6f4.jpeg}	Huile de palme rouge en bouteille 		BOITE	1	500.00	Autres	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:08:32.7	2025-03-06 16:08:32.7
+1c685183-eb6f-4e77-a572-f7e8da00af25	{https://api.omarcheivoire.ci/uploads/2ff029a8-b14b-4318-a7dd-731968fce884.jpeg}	Huile de palme rouge en bouteille 		BOITE	1	1000.00	Autres	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:09:54.317	2025-03-06 16:09:54.317
+2a3001d7-c5e9-4763-bfbd-5be9cdfbf553	{https://api.omarcheivoire.ci/uploads/e4c7a5da-8f10-4be9-a699-e68bbe7a14fc.jpeg}	Huile de palme rouge en bouteille 		BOITE	1	1500.00	Autres	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:10:50.879	2025-03-06 16:10:50.879
+735b0508-7cb5-4e87-bc04-576d126b2563	{https://api.omarcheivoire.ci/uploads/55bd97d3-265f-4efe-8b72-1d4e4b7cdb5e.jpeg}	Poudre de gombo (djoungblé)		BOITE	1	500.00	Legumes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:14:20.245	2025-03-06 16:14:20.245
+bbd0b82d-fc53-42eb-b954-89c202010c4e	{https://api.omarcheivoire.ci/uploads/22a91cb6-9d91-4d40-8672-0403252e9e19.jpeg}	Poudre de gombo (djoungblé)		BOITE	1	1000.00	Legumes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:15:22.212	2025-03-06 16:15:22.212
+0806339e-06c6-4214-bca7-34dda515fde3	{https://api.omarcheivoire.ci/uploads/3f9af9ec-1b6b-4fa0-b8c3-307d8bbe6d84.jpeg}	Huile de palme rouge		BOITE	1	2500.00	Autres	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:16:46.684	2025-03-06 16:16:46.684
+f9a01486-8fae-4b40-9a4d-1c6f96b3a0ad	{https://api.omarcheivoire.ci/uploads/d7211d26-e882-4156-9a44-0f6e6c7c2225.jpeg}	Miel en bouteille petit		BOITE	1	1000.00	Autres	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:18:58.415	2025-03-06 16:18:58.415
+e1a30e64-c1bc-446a-83e6-ee0a9f5a7a68	{https://api.omarcheivoire.ci/uploads/22fb8365-3a7c-41ba-8330-4f22deae04c5.jpeg}	Bouteille de miel grand	1 Litre & demi	BOITE	1	4000.00	Autres	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:20:57.052	2025-03-06 16:20:57.052
+90fde47f-e3ea-417e-a908-2de9e2d1a77a	{https://api.omarcheivoire.ci/uploads/952787c6-4cf0-4bfd-8f22-ad3dc28a55a9.jpeg}	Pâte d’arachide 		BOITE	1	500.00	Legumes	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:21:46.615	2025-03-06 16:21:46.615
+0ecfb1fc-ca6b-436f-a189-b156285e0e19	{https://api.omarcheivoire.ci/uploads/b700b2c0-487a-4baf-9bae-4c79eafe3d16.jpeg}	Pâte d’arachide 		BOITE	1	1000.00	Autres	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:22:30.34	2025-03-06 16:22:30.34
+1aea03e5-11ba-4410-a31d-8f5e1b47a960	{https://api.omarcheivoire.ci/uploads/ebb47e1a-92bf-442b-968b-791ab176e2b9.jpeg}	Poudre de piment		BOITE	1	500.00	Epices	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:24:01.859	2025-03-06 16:24:01.859
+ed00a796-28f8-4403-9e1a-deabe8cc8fdf	{https://api.omarcheivoire.ci/uploads/610fe321-0707-460a-8508-7972b9c5da55.jpeg}	Poudre de piment		BOITE	1	1000.00	Epices	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:24:29.435	2025-03-06 16:24:29.435
+461e8539-c126-40e7-b383-557c70e248ed	{https://api.omarcheivoire.ci/uploads/02c9bd92-5432-44b3-b68d-d2084afece35.jpeg}	Carpes de chine 300/500	Petits	KG	1	1500.00	Poissons	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:27:16.588	2025-03-06 16:27:16.588
+ab3b8c2e-ee5b-4b28-9936-0212d3846476	{https://api.omarcheivoire.ci/uploads/828e3e8a-6d4e-42b4-9e34-56bd9f076cb1.jpeg}	Carpe de Chine carton 300/500	Petits	KG	10	12500.00	Poissons	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:28:23.42	2025-03-06 16:28:23.42
+89892477-f458-4578-b2b4-4b74180ab0f1	{https://api.omarcheivoire.ci/uploads/fc6afc65-f51b-4cf9-8b2c-b346087f913e.jpeg}	Carpe de Chine Taille M	Moyens	KG	1	1800.00	Poissons	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:30:07.861	2025-03-06 16:30:07.861
+29f2015c-0fed-4a4c-898a-567e0215fba0	{https://api.omarcheivoire.ci/uploads/6a0c62ea-51f9-4e2a-bd2c-23fbd28f74ec.jpeg}	Carpe de Chine Taille M Carton 500/800	Moyens	KG	10	15000.00	Poissons	76ca161a-62cb-48ff-be93-0010b8c89b41	t	2025-03-06 16:31:30.501	2025-03-06 16:33:34.271
+\.
+
+
+--
+-- Data for Name: PromoCode; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."PromoCode" ("promoCodeId", code, expiration, "discountType", amount, "createdAt", "updatedAt") FROM stdin;
+d73ef565-bada-4ea3-90ee-8653153166e1	RIDISSI 1	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:28:24.11	2025-01-15 11:28:24.11
+ce98d3e8-38f7-4a9e-ade2-27d9fac5d05d	RIDISSI 2	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:28:59.677	2025-01-15 11:28:59.677
+1f479968-b663-4ff2-a16e-25fce484557b	RIDISSI 3	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:35:46.974	2025-01-15 11:35:46.974
+c5c7e9e2-6042-49d9-a680-a034383bbe07	RIDISSI 4	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:36:30.441	2025-01-15 11:36:30.441
+f2a20487-3bbb-4359-b944-b1afaa9e3f64	RIDISSI 5	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:37:04.613	2025-01-15 11:37:04.613
+48be835e-f83e-4d8d-bc4e-dd5572bcbb30	RIDISSI 6	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:38:11.02	2025-01-15 11:38:11.02
+75290919-50c4-4fc5-b450-f0e46690ca85	RIDISSI 7	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:38:51.4	2025-01-15 11:38:51.4
+90cd290f-c7ff-4ccd-8161-2c624df63e73	RIDISSI 8	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:39:33.168	2025-01-15 11:39:33.168
+be983ff7-5b4b-4e35-958a-f0d93f6b1405	RIDISSI 9	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:40:09.192	2025-01-15 11:40:09.192
+46d81bc7-4b9b-4150-9b5c-c804b6384b7d	RIDISSI 10	2025-01-31 23:59:00	FIXED	575.00	2025-01-15 11:41:17.375	2025-01-15 11:41:17.375
+0dd7753e-d1be-4ca6-9e9d-2dc445d9fcf1	RIDISSI	2025-01-15 14:37:00	FIXED	1.00	2025-01-15 11:27:04.128	2025-01-15 14:37:51.849
+5b161fdc-9a1a-43e3-a9b7-827b94d83bb7	BARAKA225	2025-01-17 23:00:00	FIXED	575.00	2025-01-17 08:07:40.893	2025-01-17 08:07:40.893
+62cb4a6b-8d86-4fc0-b3e3-c8c587e6b177	DJOUMGBLEIVOIRE	2025-02-05 23:59:00	FIXED	575.00	2025-01-27 11:16:33.633	2025-01-27 11:16:33.633
+252896dc-9c1e-4f10-8ef4-4058e4edeb01	LEPAYSAN	2025-02-05 23:19:00	FIXED	575.00	2025-01-27 11:19:47.563	2025-01-27 11:19:47.563
+285f330f-3d69-46a0-bc81-2ad50ca20e30	OMI225	2025-12-31 09:02:00	FIXED	5000.00	2025-01-13 18:44:45.781	2025-02-16 09:02:30.338
+03bcd803-3a56-41a3-8659-a64a4b12f0f2	omarcheivoire	2025-03-09 23:30:00	FIXED	1500.00	2025-03-04 12:43:47.054	2025-03-04 12:43:47.054
+b24346bd-316e-4f15-b432-942061b397e6	OMARCHEIVOIRE	2025-04-04 00:00:00	FIXED	100.00	2025-01-18 10:31:36.02	2025-04-04 10:54:13.034
+\.
+
+
+--
+-- Data for Name: Seller; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Seller" ("sellerId", "marketId", "pictureUrl", "firstName", "lastName", "tableNumber", gender, "isActive", "createdAt", "updatedAt") FROM stdin;
+566007ba-33c8-4396-b34a-54acb61b42d8	ff48e90e-e3a7-4f5f-8e10-1bfe25962b35	https://api.omarcheivoire.ci/uploads/043c0940-d506-4208-bb0c-44736dbc61fb.jpeg	RIDISSI	COCODY	1	M	t	2025-01-13 01:35:37.927	2025-01-13 01:35:37.927
+4c0275f0-8615-4d97-a59e-136d75f51382	3cb2b083-c601-4108-acdf-ed3b08f33db3	https://api.omarcheivoire.ci/uploads/ac235c32-0959-4288-b989-0b98fe8f1162.jpeg	Bamba 	 aboubacar	1	M	t	2025-01-15 19:48:54.587	2025-01-15 19:48:54.587
+680588bb-1dcd-4ef6-9a7b-1e32892f6cf2	d65150ca-971a-4b93-a07c-85070b0952ff	https://api.omarcheivoire.ci/uploads/b9b0d2a4-65da-40c5-b455-e578b83bea92.jpeg	NAFISSATOU	GBOKOU	2	F	t	2025-01-16 14:41:27.23	2025-01-16 14:41:27.23
+d2765e5a-5857-48a6-8a2f-975cbc5c6904	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	https://api.omarcheivoire.ci/uploads/9d700a56-5956-499d-a92c-e3820236fe25.jpeg	Sahanatou	Dabre	9	F	t	2025-02-03 10:28:09.353	2025-02-03 10:28:09.353
+aae09524-575a-43e2-ba44-90bc81fb5450	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	\N	thérèse	yabre	10	F	t	2025-02-04 21:38:14.7	2025-02-04 21:38:14.7
+abb1f748-3b88-4465-a91c-3d6f9e543e54	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	https://api.omarcheivoire.ci/uploads/c23015f2-660d-4265-881a-24e773cb480a.jpeg	Ahoua	Boina	7	F	t	2025-02-03 10:10:09.72	2025-02-04 21:40:41.444
+eb995446-cb9c-48dd-b4fb-7b928618b33c	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5		mibissa	OUEDRAOGO	6	M	t	2025-02-05 00:16:16.03	2025-02-05 10:04:52.847
+b5a49438-6af4-4830-9048-1f73d5da4a27	fe0a893a-6cdb-43d3-8d7c-65b73406d32f	https://api.omarcheivoire.ci/uploads/0ed4cb39-dc54-415c-a28f-f77c972b4065.jpeg	Ahouo 	Debora 	1	F	t	2025-01-27 10:48:01.398	2025-01-27 10:48:01.398
+0ede5733-419d-4bf9-9d89-03615609de77	e490354d-3653-4c9e-9d0e-2aaa684912ea	https://api.omarcheivoire.ci/uploads/5643b463-e90c-4644-b870-7ed92a97838f.jpeg	Jonas	Bosson	1	M	t	2025-01-27 11:04:44.808	2025-01-27 11:04:44.808
+4bacede2-648c-4425-b55d-fb17024d77b9	a7d7e493-58e9-488a-b929-ee95d1ff0a7d	\N	Jocelin 	Yao 	1	M	t	2025-01-27 13:52:39.896	2025-01-27 13:52:39.896
+f536ed84-04ac-4a92-b976-ebe377cc4832	c424be59-77d9-4ce5-b1ad-09ba1916ccb4	https://api.omarcheivoire.ci/uploads/f2ff9fd6-1870-425f-bc97-d5bf612b9d8d.jpeg	Corrine 	Agbehoundji	11	F	t	2025-02-05 12:12:11.68	2025-02-06 00:16:41.626
+e12bc3ae-f9ef-4178-84b6-b5324fc23825	42d585fa-c5d7-455a-b80c-c5e8d560e891	https://api.omarcheivoire.ci/uploads/387f4d1e-d3aa-4ba2-b527-c7e0a594c3a3.jpeg	Krotiema	Karaboue	2	F	t	2025-02-06 17:54:58.624	2025-02-06 17:54:58.624
+524ec8cd-33a5-48c0-bacf-a45b87de3ae9	22548f6a-648b-4292-9906-d043c1ac77bd	https://api.omarcheivoire.ci/uploads/c3284e59-9342-42c7-b67d-e602b556199a.jpeg	Sele	Kone	2	F	t	2025-01-25 16:26:17.342	2025-01-27 17:07:49.224
+bb64d493-ac93-41ef-acff-488400dcace6	22548f6a-648b-4292-9906-d043c1ac77bd	https://api.omarcheivoire.ci/uploads/93a33701-605b-40c5-af08-9bec9ceb530d.jpeg	Clarisse 	Soumahoro	3	F	t	2025-01-25 16:28:14.918	2025-01-27 17:08:13.223
+2cccde3a-d3f4-485b-b14d-bd5445dffe44	22548f6a-648b-4292-9906-d043c1ac77bd	https://api.omarcheivoire.ci/uploads/02266814-ef9d-4a72-9005-3e78f359d5d1.jpeg	Ruth	Kouadio	4	F	t	2025-01-25 16:29:14.933	2025-01-27 17:08:25.991
+d9baf0a1-f0d5-440a-9bdd-f7b5a8693e6a	34af3e9f-5af5-4513-8ea4-d13212c04dd9	https://api.omarcheivoire.ci/uploads/66aca8d9-8702-4772-8e5c-d62806040810.jpeg	Fatou 	Samba 	2	F	t	2025-01-30 14:58:44.401	2025-01-30 14:58:44.401
+33c83394-ba93-42e1-9663-672dd2d3a886	fe85aab5-c515-459c-8c59-e588bf3d6ddb	\N	Yannick 	Kouassi 	5	M	t	2025-01-31 14:00:18.758	2025-01-31 14:00:18.758
+401f0894-27f3-4f85-9a2b-7e3c0a5a2704	c72c127d-b967-4b22-9672-429e51080268	\N	Boubacar 	Kerr	6	M	t	2025-01-31 15:55:51.029	2025-01-31 15:55:51.029
+0a56df48-3360-469c-87dc-cc85a5e42d2f	22548f6a-648b-4292-9906-d043c1ac77bd	https://api.omarcheivoire.ci/uploads/8632667e-0f31-4824-bd49-00a0b29288e3.jpeg	Mariam	Dagnogo	5	F	t	2025-01-31 16:04:20.957	2025-01-31 16:05:02.007
+7e2ded69-ffff-4807-86d0-21f3a94e4ce8	496cda43-f208-45d5-b15e-d640673ad462	https://api.omarcheivoire.ci/uploads/336fef28-1eef-4fc2-8051-bfbd4a3d0715.jpeg	Adama 	Zampaligré	7	M	t	2025-01-31 16:25:18.766	2025-01-31 16:25:18.766
+2b7cd102-b49d-46ea-aaf7-e08d6afa0eae	22548f6a-648b-4292-9906-d043c1ac77bd	https://api.omarcheivoire.ci/uploads/28692c24-1537-4f42-b574-be56ad5f6429.jpeg	Marie 	Djê 	6	F	t	2025-01-31 19:44:24.581	2025-01-31 19:50:01.069
+c51a23f8-2779-4b9e-aef9-3f8f768443c2	1cab0d91-d7b1-4d61-b41f-2ae823a33cd7	https://api.omarcheivoire.ci/uploads/63b0deaf-6c58-40c3-9b04-6021ea58ef57.jpeg	Awa	Traoré 	7	F	t	2025-01-31 19:54:05.853	2025-01-31 19:54:05.853
+8f3466a7-8994-4a88-b169-99ae743ec451	ac7301a9-d0b1-477b-be1b-afc9644c1b1e	https://api.omarcheivoire.ci/uploads/df1d8289-73bf-4e45-b7fe-98765c449290.jpeg	Rainatou 	Diao	13	F	t	2025-02-06 18:15:08.665	2025-02-06 18:15:08.665
+e0b06d08-2817-43c4-882d-66ae000b5d42	6b15a953-fbd9-4b7c-8ca5-750e64c183ac	https://api.omarcheivoire.ci/uploads/e5a08034-81ab-48d8-a20c-8fbce0f7b4e2.jpeg	Doua Jean Marc	Gogbeu	14	M	t	2025-02-06 18:22:39.921	2025-02-06 18:22:39.921
+25644fa0-fec4-4fb9-a230-d70af0039bed	b5b2cc19-993f-480f-9a60-1a95e7360b2b	https://api.omarcheivoire.ci/uploads/02edb753-e7a9-4d75-a58c-261d0e8d8c65.jpeg	Marietou 	Koné 	15	F	t	2025-02-06 18:56:39.096	2025-02-06 18:57:06.011
+89db4dd9-8db6-4231-b9d7-76777b31f1c3	1aa093d0-bd5d-4194-9204-1a9c6a787676	https://api.omarcheivoire.ci/uploads/d09550d5-0123-45b7-a5ab-083530e0964c.jpeg	Gaitan	Dotse	16	M	t	2025-02-06 19:08:08.765	2025-02-06 19:08:08.765
+b272839b-33ad-4a52-b566-9c78f89e4452	80036522-7fd5-4c12-8649-d3fdab0ea3a0	https://api.omarcheivoire.ci/uploads/c33bfe97-9e67-49c5-87b1-85ff209d4a93.jpeg	Affoue Brigitte 	Adou	18	F	t	2025-02-08 13:21:16.089	2025-02-08 13:21:16.089
+275fdd98-ba8a-48e3-9d74-3fca6d12ef15	db17b389-d426-45c6-9de2-e4dc0acd4816	https://api.omarcheivoire.ci/uploads/5b90e1c0-9606-45ee-b178-948c12043e7b.jpeg	Adjo Paulette 	Yao	17	F	t	2025-02-06 19:14:49.631	2025-02-08 13:22:16.682
+76ca161a-62cb-48ff-be93-0010b8c89b41	f9d5343a-8ca2-4d65-bffe-3aa902087e46	https://api.omarcheivoire.ci/uploads/6c08a65b-de2c-463f-b55b-147008c4489a.jpeg	Marina	Gnally 	2	F	t	2025-02-10 09:43:19.234	2025-03-06 15:21:21.426
+37f0af4c-cff4-4bdc-8d77-fa307f19b9fe	8e13edb0-5b4f-4bdb-b209-4fa88218e12b	https://api.omarcheivoire.ci/uploads/8c1e5808-5834-42dd-a794-6a0aa73f3646.jpeg	Alade Yinusa	Nasiru	12	M	f	2025-02-06 18:04:29.602	2025-04-12 12:50:27.202
+\.
+
+
+--
+-- Data for Name: Shipper; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Shipper" ("shipperId", "marketId", "firstName", "lastName", email, password, phone, "pictureUrl", "isOnline", "createdAt", "updatedAt") FROM stdin;
+8d75e40c-4d25-42ff-91f2-e249518f8cfc	3cb2b083-c601-4108-acdf-ed3b08f33db3	ISMAEL	TOURE	0703500862@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$2IUS5ZIQDSyQr41Z3DHItaClc4eqnhfUbKyBzp4lVJA$ijGdpT2dHwGh7Nl71JBBuYw+rOPrJ59a8/Gg3ut1odg	0703500862		t	2025-01-16 08:47:11.321	2025-02-01 17:00:51.792
+ade21ecd-7de2-489f-8583-85261340b816	d65150ca-971a-4b93-a07c-85070b0952ff	FREJUS	TOURA	0160956775@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$G+gehvY2JXnVZoMvdE19Ybppia9uGDaEHnlOP7ahaZg$Nm3nL6n3eTgICKbo2+i7M8g2VDdo8pc1+iX6740cuXU	0160956775		t	2025-01-16 15:09:18.418	2025-02-01 17:01:08.721
+b2ca4d4e-9325-4acd-bec0-04fbcb800e8d	ff48e90e-e3a7-4f5f-8e10-1bfe25962b35	François	YAZI	0748712685@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$7mwjgeoFiMnPvAwijNvC0xNiHosaxwrMJynMnlG19x0$Ea2h6WYMILRazQOtEHkcteOcjQ82B2l73zCaSHJzKcQ	0748712685 		t	2025-01-16 08:49:36.96	2025-02-01 17:01:34.047
+af98fec2-dd07-42c9-abe2-b545407a4237	c424be59-77d9-4ce5-b1ad-09ba1916ccb4	Issif 	Issif	0152857328@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$sZ+vtdgv76dVJqgCes8SUtSynltd2+zp6JqBrMlTDCI$wyOMJrxcLCUMH+ue85b9TxvbsFwuVnjb1a1a4Hxnesk	0152857328		t	2025-02-15 11:07:55.031	2025-02-22 20:05:24.5
+eaf52f9b-5108-4605-9eed-5607c984c658	f9d5343a-8ca2-4d65-bffe-3aa902087e46	Inza	Dombia	0506280063@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$1TlAH3jZwAZgLCD25/3u4PIOZSu6z7BlzuhpHnK/TqQ$tDHRwDkk95tzE+DflJDNd+Tlz40sp2Z3XQvs1cx8hPE	0506280063		t	2025-02-15 11:19:50.071	2025-02-22 20:05:02.346
+356c248b-3fb5-4f46-b7a0-40762b44cff7	80036522-7fd5-4c12-8649-d3fdab0ea3a0	Jules	Konan	0749358044@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$KFqkKv7GMFrFKwNK6vLmAdZk0qoKO2ydpNZpP7I3dj0$u+xwaR17sQQOjeOol8rxBy/2shted1uSotn0jPO6jhs	0749358044		t	2025-02-15 11:24:08.43	2025-02-22 20:05:08.747
+52e54686-333e-4e67-8359-694cabfc9f68	1aa093d0-bd5d-4194-9204-1a9c6a787676	Noël	Kouao	0141424340@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$pXv1X83/23PghpSY0peoPeMTgdcECIjH/UtOegxqrHc$cChMJg3J2AxJfyA6OJ05yvxhKhPtwONiFOLqkFtQclM	0141424340		t	2025-02-15 11:28:32.377	2025-02-22 20:05:16.503
+9f3c649c-4b9f-47a8-8157-f16fa027de77	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	Assie	Kouakou	0759636998@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$wKeMety+DnlHBxhxSYPt98I7/4Er3aObtODG/eubWqQ$nmfk+kKh79Y2Xc3y0IaUM51EhtEq5RdwX9xDY7Qwqkw	0759636998		t	2025-02-15 11:12:22.901	2025-02-22 20:05:32.207
+05d69e1d-4a92-4515-9352-849fa4891c15	b5b2cc19-993f-480f-9a60-1a95e7360b2b	Ahoua	Nda 	0140404677@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$m2+vtegN/GYHbz9p6lfe7UJruMKOp8ufjEdcF/cbCPo$MhHLvUzP9B+ZrEvneEbdCh2g2AVdWzVq/rA20avGGv0	0140404677		t	2025-02-15 11:32:59.582	2025-02-22 20:05:43.641
+37590cfc-589a-4bff-8834-489298469604	6b15a953-fbd9-4b7c-8ca5-750e64c183ac	Giles	Boudou	0102748970@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$CmXnovMC2BB5S+pPg5saLPR8gTFOsMjJy6eix8iGTvI$V6jbzEH8J3FKYXO2vuSneWirTxh1vjpLxrSv/CSwGbA	0102748970		t	2025-02-15 11:34:51.76	2025-02-22 20:06:21.469
+11fece54-5961-48eb-ab01-7dbbc0576ead	b5b2cc19-993f-480f-9a60-1a95e7360b2b	Guillaume 	Koffi 	0143500357@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$43r3Af30bYqx7EKm4HgL4g3BCbIZiBa6cDq0wpOjOo0$J593VhCy7XfnYWC3cAbH8s4ABqdKNM1OjDKdMUyPCT4	0143500357		t	2025-02-15 11:30:14.905	2025-02-22 20:06:29.146
+05602b7f-1c0d-417f-b829-a623cb69c623	42d585fa-c5d7-455a-b80c-c5e8d560e891	Leon	Kouakou	0757646830@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$vfFO11QTG4ugC4rZ2U6s8tebK/n5utsHTeGdZbHDEKM$U7EBcJ3rEloeE3ggBQQ4JddXcpKLS9cNRNLGFDqfAvs	0757646830		t	2025-02-15 11:14:48.14	2025-02-22 20:06:38.736
+c35b9fc7-847c-4840-9e05-9cc8fab4ef6e	fe0a893a-6cdb-43d3-8d7c-65b73406d32f	Florentin	Kouassi 	0504542588@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$Ch/TY+52nAAQRUqke9VyakYVYQnYp/VWP/SGTMSZ4Mo$uIh8TMXHCnoByX5CoR5Fm8DGaoPXUL0pizyTR66KW/E	0504542588		t	2025-02-15 11:22:12.564	2025-02-22 20:06:53.475
+35039972-8887-466d-b5ea-906e42afa1ce	db17b389-d426-45c6-9de2-e4dc0acd4816	Kouassi 	Koffi 	0778127212@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$IZpMp3JFGHuUn0lB0DTu7smX/gAyo5N2X7hR7TFRjpY$sCN+z6MRESj/hJubXB5l3hdc+1sRu+GuAQtVaP5SKzg	0778127212		t	2025-02-15 11:26:24.487	2025-02-22 20:07:00.34
+09df077b-eb20-4aaf-b564-1036039d3fba	22548f6a-648b-4292-9906-d043c1ac77bd	Diomande 	Namori	0506400004@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$Qt0hHKgbO/Jwrewhne5kGaPUQZZ0PLgHv9iQhs6XaeA$n3d5vrOZ3XtHWRbyaBpL3RANI19gWAbKf9EwbN3rIwU	0506400004		t	2025-02-24 11:54:41.734	2025-02-24 11:55:06.478
+8d7f6897-93aa-4be0-8b38-73ad7f6a4a60	a7d7e493-58e9-488a-b929-ee95d1ff0a7d	Junior 	Sangare 	0575431277@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$0+Ksb1C33pTboMjpnppw1hnjuDG0nEPU5DBMa9K8qwk$rYesOdOX53kc8EL1QKCbUD3NoB62LIcHGMkv/2tMnxM	0575431277		t	2025-02-24 11:58:01.686	2025-02-24 11:58:14.692
+06f0ece8-e4f7-430a-9a04-78684211286d	ac7301a9-d0b1-477b-be1b-afc9644c1b1e	Ange Ulrich 	Dje 	0584319171@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$JHLw44H20R6pyJclRYev3c85sZjslozpae6X5fvB+KQ$PMZHqFhr04gWNx1G8DXo2F8Nxg7awk4dmWnJMsuJ3jc	0584319171		t	2025-02-24 12:02:51.241	2025-02-24 12:03:24.175
+ac9964cd-b772-4437-aa79-67d6cedb63d0	86079a29-cbfa-439e-bc7d-36b7ad8eb2b5	Mohamed 	Ouattara 	0713151617@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$HsjBRNCD/vuxggAcrGQYTZhBBAKygo8MTWmRR7SaGOU$uWODhPCj0b32v+C+kY6Cw10lJIaL1EH01zNpFAmppyI	0713151617		t	2025-02-15 11:10:26.833	2025-02-24 12:05:28.798
+3a3fa75e-b275-4511-a733-5a0e99529a06	8e13edb0-5b4f-4bdb-b209-4fa88218e12b	Julien 	Gleglo 	0140619455@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$bTGm95LFb1wkEv2/IFmB573HyfpsgaCo7szjpZ1N3Oo$iC9e/2fdFFDjYLaDV9zc00MLVe0uYeCICTmQi+k4OQE	0140619455		t	2025-02-24 12:05:16.613	2025-02-24 12:05:58.352
+26190bb4-abbf-4657-9bc5-27d301c8f895	e490354d-3653-4c9e-9d0e-2aaa684912ea	Jackson	Bogbe	0789395909@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$0zjrl5s1wi5ufGvIfGaJYazllcJdKpy9Pp1kxDzZAbY$4nXMtOYLU1tdVd3sm8U4DuuZnc92HjHferSDGeqOizQ	0789395909		t	2025-02-24 12:07:46.086	2025-02-24 12:08:05.885
+a7c4a36a-cac0-4b50-a7e7-e2aed7c043d5	34af3e9f-5af5-4513-8ea4-d13212c04dd9	Serge 	Dho	0546594141@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$ZWkwtLHncdD6LJWemydncZjadh/RpNj2Me1Elz0kBws$GjN8ScHrMm/SLY0CRaWvSj9Hqf/c3TYT0fc4H+OOC+s	0546594141		t	2025-02-24 12:13:15.716	2025-02-24 12:14:04.222
+\.
+
+
+--
+-- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."User" ("userId", email, password, "firstName", "lastName", city, address, phone, "createdAt", "updatedAt") FROM stdin;
+d6fec103-4a6f-42f4-b9a3-cf715621198c	user@omarche.com	$argon2id$v=19$m=65536,t=2,p=1$XTqopMsbfV4I4RpEgZfoT+CFmVLl8MVZRoPvgvPjBcg$C0T4xwYuC+B51dlX65Mszf26OAPSvpc06a5Hc0c5ORg	User	Anono	Abidjan	123 Market Street	00000001	2024-12-30 12:40:11.534	2024-12-30 12:40:11.534
+13eac439-fedb-4e34-88ba-940c19aa8e0f	\N	$argon2id$v=19$m=65536,t=2,p=1$WwpZQ3PyzvCjhPPT+CdexwgkY7nKxLefmrj2Jg+kG5Y$HOL5K+qIq2BrAcqPnvFzcItlOUU6kDBLEmzNgkzOWks	Chris	YESSO	Abidjan	Riviera Bonoumin 	0505201515	2024-12-30 17:30:03.9	2024-12-30 17:30:03.9
+f63ddc34-e6c1-4bcd-8471-4703b280047b	\N	$argon2id$v=19$m=65536,t=2,p=1$dkEWyLrZpeLw5JsRbsmpSODlGJjUEagcVd+zBLcYeAk$/DmYdB6VBghXILOjhnbV5Q4fpN1qDswxyz12ALBoeTY	Soft	Man	Abidjan	Bingerville	0749447896	2025-01-02 10:02:26.61	2025-01-02 10:02:26.61
+c0286d7e-754b-4a41-8571-120942e6bca2	\N	$argon2id$v=19$m=65536,t=2,p=1$EvbBnXnOkKZj56tctpZ0HihUV6ILMJ9SLVErirDEdp0$xVAnOXylKj8mBBRL/ZtJFxddctWCysApVEiFzU6dXdo	Désiré 	Koffi	Abidjan	Bingerville	0778088427	2025-01-13 01:03:38.274	2025-01-13 01:03:38.274
+e68828cf-9084-4981-9580-971ed0426e1b	\N	$argon2id$v=19$m=65536,t=2,p=1$uSzaa34vuh70WG5dTUwsP+chhIYICCa76D5gG9AEHvU$ChOQxij5nadq/lSXgtyLeQq31fWHhBY454uPrqIIZ8Y	Serges kanzegnoli Yohann 	Koffi 	Abidjan	Bingerville 	0768666271	2025-01-13 01:14:25.556	2025-01-13 01:14:25.556
+bd5f2c54-6aa0-4e4b-8187-8758c93bdb5d	\N	$argon2id$v=19$m=65536,t=2,p=1$NdFim/YtSFoF9vcOgb/DSVqcLoZJLoivfDNDTRSIbpY$m28RGIFvcE8SPfNIIHhiDoyq/Vr/i4DVuqpRpwdkPZ8	Astrid	Akatcha	Abidjan	Abobo	0140924711	2025-01-13 11:41:51.096	2025-01-13 11:41:51.096
+49f24252-8299-4e8d-b0bf-7973f66dbc6e	\N	$argon2id$v=19$m=65536,t=2,p=1$xy42B+ocV+SJP9/Cj8wypzAZP/RUckyYdhKmPfl5QjU$ejCLttJ0MMRpLT9V+KEJ2MUbtTzSZkqMzrgoCOircCc	Axel	Koffi	Abidjan	Abatta 	0789741924	2025-01-13 11:54:07.474	2025-01-13 11:54:07.474
+c8700f95-70ce-4cac-857f-2b71d9928b1e	\N	$argon2id$v=19$m=65536,t=2,p=1$JZRPcyRv90paPQCOr74HrN46LfAW214JW3+4koRAybM$BaKzXlXK3BkodZ++5nhVYkhRympwA3hnxzpP32Xx8SE	Aimée 	Kouma	Abidjan	Koumassi prodomo	0747892285	2025-01-13 11:54:48.386	2025-01-13 11:54:48.386
+0cb8a4dc-c394-44d2-9db0-73f5460fe18a	\N	$argon2id$v=19$m=65536,t=2,p=1$YtMqrV08rCgJlRH1Ays91pJOA31IDJEuhAbuhpHJp84$DbdL9HF8+xbqZGezoqMPp8hQZ1dfLb5htQTjeHsG14k	Dominik 	Kouakou	Abidjan	Bietry	0789538388	2025-01-13 15:48:45.351	2025-01-13 15:48:45.351
+5906751b-679b-41fa-b6b5-2b373de96389	\N	$argon2id$v=19$m=65536,t=2,p=1$fK8BNazuy0G3QsbELedOpFT/u3l0qPAllZhPGImzmKk$eOkU8if+9pxuoWv477u7ipxdspPawzIGcfVKRicX2+4	De Lima 	Ahua	Abidjan	Songon	0757795778	2025-01-13 19:03:04.58	2025-01-13 19:03:04.58
+88d7d393-2f38-447e-be6b-70dd5e2d1633	\N	$argon2id$v=19$m=65536,t=2,p=1$rXkQt+DuIXfsg5XIKo7IdFM8dRwR2owvxlg+C3X/eQI$fi6EMzui1tBI32CijwUBNNd/G5B2mgXFwPjqUQmSCrM	Ilias 	Achimi	Abidjan	Yopougon 	0777222598	2025-01-13 20:45:15.184	2025-01-13 20:45:15.184
+a66d15ec-7e63-4a04-8659-7290dc580d15	\N	$argon2id$v=19$m=65536,t=2,p=1$doFlB9+o+u9+lqldmGTnwCDNq33HRIhwrlAq2nBTdIc$OF6h0lrlRh8UkEDIZult7v0bV5fARZRqCZGVut24Xus	François Guillaume 	Yazi	Abidjan	Riviera faya	0748712685	2025-01-14 09:01:39.787	2025-01-14 09:01:39.787
+ac8499f1-26b1-480e-86f6-bca8b933ce75	\N	$argon2id$v=19$m=65536,t=2,p=1$5WvNrnIiCF7TLwT3C67uoGHJCMm21+0v0fTruSdvFgU$FrJGEb57wtJrHWb5enpMUrqsnlyzrZZ+PQu8Swidy+g	Koblan jean 	Anon	Abidjan	Abobo	0779914619	2025-01-14 14:04:12.105	2025-01-14 14:04:12.105
+a0255bf9-d6db-4731-82c3-20eff5fbb9f2	\N	$argon2id$v=19$m=65536,t=2,p=1$O4yfWFqp99hSKV03qTmyO4uAQ5fgQtKX9py9O8vo9XA$VOVgM4huFJzFU7HwZSov7pf1AmAN3Y6WVHEAqdds8DQ	Kouassi Serge 	Lougbegnon 	Abidjan	Cocody Riviera Bonoumin 	0749804392	2025-01-14 15:41:19.666	2025-01-14 15:41:19.666
+442403cb-7665-4ac2-918b-292857500958	\N	$argon2id$v=19$m=65536,t=2,p=1$wMfm6Fso/dR7C6Gv2dEq4Q9LYa6hEXdiDXPv3shcLkI$GVEfyZXb12vHmJKmLOZSHTjkpKJvcR2/khfYZaHdf6w	Joël 	Tanoh	Abidjan	Anono	0787848780	2025-01-15 04:58:34.514	2025-01-15 04:58:34.514
+c85343bb-f156-4f4e-8c3a-12877c1a400f	\N	$argon2id$v=19$m=65536,t=2,p=1$MrDkp4lpEY1Uvzy6pjg30/YJ4i9OC4TF1+Se4zmL25A$AFK8JRdttE7haNz/46BEamWijedQsS9WPIZu0lKXvHg	Ernest 	Sam	Abidjan	Cocody Faya 	0749001402	2025-01-16 16:07:56.379	2025-01-16 16:07:56.379
+6037b937-c3ef-485f-a5a3-f3687bfc75eb	\N	$argon2id$v=19$m=65536,t=2,p=1$oulfL49fzwm3UXYfrX7XMWcAYq59oP5j6BYMK3+CHVE$bHQav7c6OpQ6Efyx8Vflhr0X/9eAfMsRN1Q000u0Vuo	Jean-Baptiste 	Assié 	Abidjan	Mahou	0749282647	2025-01-17 06:00:53.257	2025-01-17 06:00:53.257
+fe03e368-1411-44e3-93e5-697f58a6f4ea	\N	$argon2id$v=19$m=65536,t=2,p=1$ZNay8hxOOPUd/Kg9VUTjszZehGYfsN2h/x/Nnzk8glk$EiksbVFqEaqx12t0j+Djcmdcf/eFag7uZX8QJ7HYdVg	Pascal	YOBOUE 	Abidjan	Dokui	0505011574	2025-01-17 10:30:27.601	2025-01-17 10:30:27.601
+21338b07-7834-4a4f-a693-19d2be9a9efa	\N	$argon2id$v=19$m=65536,t=2,p=1$Ph/B+QG55MYus3l5GU0F4JU3Wm4jqdRHy8rDYcYmQMI$wXgw9kFwq/5bda2ZFLpWiF+NGCoHg+9hYGwgNK+LhXA	Yves	Yao	Abidjan	Cocody	0708090504	2025-01-18 12:58:48.889	2025-01-18 12:58:48.889
+0db8c193-b617-4cf9-9588-8d8a1c644d3f	\N	$argon2id$v=19$m=65536,t=2,p=1$3E+VaIQ9OeRZxJ01BRJcWun3XxEca4CBaVTK+qedSuM$eoz61EdRVvlb6rZT1hARXL0M51+dRRLGgw3Tsq1JdxU	Hervé 	YAO 	Abidjan	Abobo	0748445927	2025-01-19 15:32:29.92	2025-01-19 15:32:29.92
+7c30defc-2b75-4fd1-a875-3ae41244be31	\N	$argon2id$v=19$m=65536,t=2,p=1$+O7IOm5p41o/rJwLHAZs6UJvwwzQH82Hh8kwRGdqZEo$JhodRnRUG6b5cbIhlDSHmgzZSp1WWt3zSUG2wuYNzJg	Jean Marie Vianney 	Nguetta 	Abidjan	Yopougon 	0747204329	2025-01-20 08:26:14.071	2025-01-20 08:26:14.071
+71d5483a-0506-454b-92f3-402d65a3fa5c	\N	$argon2id$v=19$m=65536,t=2,p=1$t1IJPkCY2wawCattl8FnOMDjkQQKUWW/W8aDIf0aWuk$kNAZjd7pKImCuKrzaEF1d2mGUpIneZFScEQ52BMPEco	Ange Prisca 	Sery	Abidjan	Yopougon 	0748822260	2025-01-20 15:32:30.079	2025-01-20 15:32:30.079
+59b24ac7-11bc-48a4-a2cf-d4f1fa427250	\N	$argon2id$v=19$m=65536,t=2,p=1$5yuFRYK+n97smpzKjJog2bNgoTKjVFbq7/+Ub8aAc0g$iRdNQka40HpoUjiyVZHyV0hr4B5TI0+5DUIzQEZJVHI	Thierry 	Mobio	Abidjan	Yopougon 	0789380939	2025-01-20 22:45:15.511	2025-01-20 22:45:15.511
+62447bda-b519-4899-99e3-24e48b0a8d9e	\N	$argon2id$v=19$m=65536,t=2,p=1$0aWP+lXK/GfN1TzUo9YJopyYXOTi5U1pM4/66ob657E$IyO2gHx35t2yDugI+5TpGdjIZwDlfTH+pCepBVfc3RA	Charles Daniel japhet 	Gnaba 	Abidjan	Marcory 	0777851979	2025-01-21 21:09:39.091	2025-01-21 21:09:39.091
+7f7cc959-c167-4aa3-a67f-e159ca5a8031	\N	$argon2id$v=19$m=65536,t=2,p=1$PN83EioPx9xpKD+R73iVDxU8q3Vf/ya29xnVqgZLNas$bdO2Bn6k1Dk5BVMxbfD+XtDwY0mk9L1rnfQHTN+b/iI	Kablan Ernet	Miessan	Abidjan	Bingerville 	0779279276	2025-01-21 23:45:48.468	2025-01-21 23:45:48.468
+bccbc087-ab3a-46ef-8019-257de8eac46c	\N	$argon2id$v=19$m=65536,t=2,p=1$Xpq+oAi+RN4ke4AVBLOFknSXdVv7TZWmUVMq4uvPz2U$eEOVX1ZNbzwvz4tYrbArHDXQWd6tYmixa+zJxmbjrtQ	Ornela 	Ngaza	Abidjan	Yopougon	0676857280	2025-01-23 08:30:12.922	2025-01-23 08:30:12.922
+feff5f03-9f9c-4d14-94d8-daa01d66273f	\N	$argon2id$v=19$m=65536,t=2,p=1$LRQJJ8Om5FIcCVDZoZi5m5sMv//0baZAWqpjxbd5iuQ$/pjn1/qJVzv4LCTeB0AmPZyXggTDMfk2DbDLjSB76BU	Daniel	Comlan	Abidjan	Angré djorobité 	0507626910	2025-01-25 08:14:15.184	2025-01-25 08:14:15.184
+f01712df-72bf-4bf9-a0fb-2c7697f2f4ee	\N	$argon2id$v=19$m=65536,t=2,p=1$1nAywBAslhnhdhWlxGLCFEUcbIJmPr2MTP2qjkQbHuU$y0pZAgg+bkeVAW3ozv/ibBDV7NR88talTvYwsTQcyTw	Bamba 	Mohise	Abidjan	Abobo belle ville	0777556402	2025-01-26 13:07:42.763	2025-01-26 13:07:42.763
+209c495e-8163-4abc-985a-6d217c1e9f49	\N	$argon2id$v=19$m=65536,t=2,p=1$/tSQsyl4ka+vNWFf7mD61nUMGnrONzzqUDUXLfeXCPc$l3LeaKaHnyhtZl94iL09gmTHBv0RXv3R7duaLC+u6rg	Vincent 	Kouadio 	Abidjan	Bingerville 	0544117677	2025-01-26 15:44:48.872	2025-01-26 15:44:48.872
+d1b73854-2437-4768-b66d-2cab5e2fcff5	\N	$argon2id$v=19$m=65536,t=2,p=1$GzPWshg2qEoAKR3I5+b7gbLvnGA9zBhRh5G1AR7/VPI$TImSVPzSoGKrfp3Og9mMxOUVHKY/90ruIDoTBcV8rNw	Kouadio	KOUAKOU 	Abidjan	Attoban	0102000453	2025-01-26 16:56:34.118	2025-01-26 16:56:34.118
+aa2fb36b-0b78-45ca-a56b-0cc1ad3bd4ea	\N	$argon2id$v=19$m=65536,t=2,p=1$kBLP/5v6a2tnVdJoC09m8j4A3oEfTlft7daeWM9iFdg$AyBaBQjg8CrJxnQQ7WGg/M9Op9HJi+BTqI0PhQLVBfs	Yasmine 	Sylva	Abidjan	Pharmacie fanny 	0507590745	2025-01-27 00:40:40.07	2025-01-27 00:40:40.07
+21c443ba-1e9e-48da-968f-6b27baeefaca	\N	$argon2id$v=19$m=65536,t=2,p=1$6ldHz25EmKLYn6xXJwG9UglzC+SLzLyLoYKN69OF6+8$LD4iCrxrOuVxNQmhZVz55+QNWd/QJpXOFRQa8nqF+Fc	Tenena 	Soro	Abidjan	Korhogo 	0758361577	2025-01-27 10:55:24.176	2025-01-27 10:55:24.176
+420098da-d5be-443c-b500-c828a3431c0c	\N	$argon2id$v=19$m=65536,t=2,p=1$+ZbiUmiKmItkyIv45tjK9VGbUgSqV2roNRvSmrBglnw$R4U9ET/JVxQgLp1pMcUcyAgc2GEZFWTxbKykHR58i4k	Mardochée 	SÉGLOUIN 	Abidjan	Abidjan Cocody 	0777431133	2025-01-27 11:17:49.709	2025-01-27 11:17:49.709
+b2160abd-5996-4003-864d-0e65960bb46a	\N	$argon2id$v=19$m=65536,t=2,p=1$UWd01m7cXVKtwFfbHVilVwgebF/vl3617suDnI4BVp0$u0VLY2FzbhnbxONTVhrpdMnau6MLoES/gJcH7K1+Teg	Kouassi william Rodrigue 	Kouakou	Abidjan	Yopougon carrefour Gloris	0757168949	2025-01-27 17:29:08.07	2025-01-27 17:29:08.07
+c80f6da0-0aa9-406d-8312-f368e90ca587	\N	$argon2id$v=19$m=65536,t=2,p=1$xiIQ7yYy8f2BeVOdsAd/KyhQ8GVos+vvHKqRYbMPTV8$pTL3jNpOph30L+MMBo/oGcZPnyN1aVN57Syvxm3Vl7I	Janvier fredy 	Manizan 	Abidjan	Bingerville 	0140517008	2025-01-28 10:20:49.882	2025-01-28 10:20:49.882
+27c8ea1d-3b79-4abb-a979-9f0b72e81f14	\N	$argon2id$v=19$m=65536,t=2,p=1$u6qSrtqdrn2hByvRP64hmZT82xS+AnRyJBiTkXvAD70$Tg1reCdtx3oRgW8OAa/tRCZb4AV92mZvdAAtWB28T0M	Bethiane viessia 	Ibla 	Abidjan	Bingerville 	0546202128	2025-01-29 12:02:43.701	2025-01-29 12:02:43.701
+92130968-81c6-4b81-9479-b7304ac313f8	\N	$argon2id$v=19$m=65536,t=2,p=1$SfemslwIti1ATRXYOLUuyDihV20zqo3nofi9foS7buk$HIf5FVwNEZ7aJMO07fo190aAIxVbV8P9C1a8OhaDG3s	Eric	DIBY	Abidjan	BELLE VILLE 	0556592638	2025-01-29 15:19:35.195	2025-01-29 15:19:35.195
+bbe19592-aa70-4b10-903a-89a35e4c9f0a	\N	$argon2id$v=19$m=65536,t=2,p=1$105g3wQMQsH0sBfJ5Zo39xC7CweAjN4IeppkXYdYLOU$iiYCUIwOoccfkDTuB1PxTT0YpmRKGey9DcbZWRviSOM	Ruth-Sarah	LOUGBEGNON 	Abidjan	Bonoumin 	0767392586	2025-01-29 18:00:24.306	2025-01-29 18:00:24.306
+229b06a5-01b8-4480-a56d-c80004faf208	\N	$argon2id$v=19$m=65536,t=2,p=1$J7N0Baa6D9RCejACqRfG3JATUaxs7XXAeTjfLcwy62U$jY7Q8DscIUs00qP3gD0a17McM4DAeMUO6D5c/FjmogI	Laura	N'goh	Abidjan	Doku	0712947461	2025-01-30 13:43:32.573	2025-01-30 13:43:32.573
+39a0c622-75c4-4eb5-a375-9af234d61276	\N	$argon2id$v=19$m=65536,t=2,p=1$WVZ+0h+fyyd7HpBGqx6XAvttqrA51iZpi0zNHBkolUk$yuUlfHZhEutFJPTBkcppHk3cmBYmGTrvbAfWUBV6P8A	N'DA AHOUA 	N'guetta	Abidjan	Il plateau les olive	0140404677	2025-01-30 16:02:48.414	2025-01-30 16:02:48.414
+78e89806-b785-45c4-acef-255ecf242d19	\N	$argon2id$v=19$m=65536,t=2,p=1$5XYcLofzPlSmmlokxrrJijqZe8NJImc5jgqVoJm6lKE$rWl8gAMY30+JZoH9wtKgqLjhfNRss0MDnL6dxo6c5Hg	Drepeba williams 	Bolou	Abidjan	Port-bouët 	0703242169	2025-01-30 21:42:12.245	2025-01-30 21:42:12.245
+a3078222-03e7-4463-aeb4-9aa182b6c38f	\N	$argon2id$v=19$m=65536,t=2,p=1$L9ZFTnVTL0j9viyuzkxuRPiFOuyy678cJVdezZPpIsk$V7vamoUbqwZugViX/VMBSontPyrUHU9ylCQo9Q9EskE	MIBSIDA	OUEDRAOGO	Abidjan	2 PLATEAUX GARE DE YOPOUGON	0759451699	2025-01-31 12:55:47.825	2025-01-31 12:55:47.825
+0a0a7d4d-a608-40d7-a086-a1ac8025881d	\N	$argon2id$v=19$m=65536,t=2,p=1$Xn0TcHkCbSoMpzfUeaO1TLozDA7RQQRHVtRgXbn8BXE$jfXuXUKrnAQYszcMGPe818wHYfFXV22BVC0h5Lz4o8k	Boubacar	Kere	Abidjan	Vallon	0707913467	2025-01-31 14:48:22.925	2025-01-31 14:48:22.925
+46f7c425-1e93-41c5-a891-56f13fcbe14f	\N	$argon2id$v=19$m=65536,t=2,p=1$DY+a3KKY/gQhDF7ozhtWwaDhgWPQArNBB2z9PFoGo0M$G4qHiXAJfiUuRImj1SEDlSe9b0MvdZTx4ttpJHBtgao	ADAMA	ZAMPALIGRE	Abidjan	2 plateaux 	0757544775	2025-01-31 16:07:52.448	2025-01-31 16:07:52.448
+aee63e21-80de-44e8-88cf-1e6d32a6b228	\N	$argon2id$v=19$m=65536,t=2,p=1$irHCejouw1IlgFPvKSazzZAqmQQcDBlM/VzXRMiUgwo$vVg2EDbSBEFqGYpvYfo386UIrWLvaERWCKu0N8dij7s	Emma 	Kakou	Abidjan	Yopougon saper pompiers 	0748613343	2025-02-01 10:31:32.227	2025-02-01 10:31:32.227
+5cd367f2-3884-4520-a5b9-3fc7b77dc8bd	\N	$argon2id$v=19$m=65536,t=2,p=1$PouI3z8Y4QqkN9CGmhUMCd8or69Uow/O4cPr/SmIULQ$tHkE/7P8l9+jKt6ZFyECcvyyFQPWhu+iQK+DXWGsLCY	Firmin	Loua	Abidjan	Dokui 	0545985477	2025-02-01 10:52:42.848	2025-02-01 10:52:42.848
+59469745-3913-4a78-8010-edf93be9264f	\N	$argon2id$v=19$m=65536,t=2,p=1$kfejk1EhLmZfwusuL5WiOLyWXMgiZjDvU7G5L3ZoBXk$RH4S5W4V1r8Lk4vJN/FT7nBRq7ftwHrxSkpIQU/7ffk	Christian	TAY	Abidjan	Modeste	0101809496	2025-02-01 11:29:02.618	2025-02-01 11:29:02.618
+2dbbe941-02b5-497d-9ab9-e7740b97239c	\N	$argon2id$v=19$m=65536,t=2,p=1$GT5blcER4k/lwsP+MYQQKUEGTDEk78zk2kIge5gjsyQ$5FKN9/WcsIZq5YTMRz8yC6uhKVRW6VpGpr4iwt4bhYs	Trésor 	Dago	Abidjan	Yopougon millionnaire 	0701799019	2025-02-01 13:41:49.261	2025-02-01 13:41:49.261
+520b2ee8-107a-4905-bb4d-4b3ce8e13e2c	\N	$argon2id$v=19$m=65536,t=2,p=1$87i+BCDLTSdsN+yrX1rIxOQ2ztY1T4ERggAEf89xe3o$ZOcTy89ExxOmVcdYY/BM/22xftDi9U7bGh3vpLOwcys	PAUL	ZAH	Abidjan	ABATTA	0767345461	2025-02-02 11:39:05.456	2025-02-02 11:39:05.456
+31623704-4734-4b80-813f-02cf13b8a1e5	\N	$argon2id$v=19$m=65536,t=2,p=1$9GWTPGGvKcw5eBYfjR7cseYwArD4uX1vjO/eqYx9kKM$A8k1T7U2mHh70qqsxdNSUKWV9288na/x5zZEIgqsBw8	Guessan Bi 	Port Saint Cyr	Abidjan	Cocody 8ème tranche 	0710878280	2025-02-02 20:47:49.149	2025-02-02 20:47:49.149
+0ec3e38c-49cf-40a7-8555-5dcd1ca358cc	\N	$argon2id$v=19$m=65536,t=2,p=1$rowfaXEhri55UhpSLfbHx2YwGd+/ONGF9T50OUEAMLM$o3uWuPUJ2ya+7C475o22rJobmQkclC2aziSFVvKC0SY	Serge 	Adou 	Abidjan	2 plateau G10 	0707930909	2025-02-03 12:55:05.681	2025-02-03 12:55:05.681
+6ff37fa4-c876-482b-afc6-d380a2a5a9c4	\N	$argon2id$v=19$m=65536,t=2,p=1$ja3Z3F07//bdenN6qBIJUq10FTM1gbZ+cSd0396McWo$GmOhB19kJpcgODyb30ANvh4TsmBgzcpxqo4n5lMKPPk	Ursulla 	KOUASSI 	Abidjan	Commandant sanon 	0140387960	2025-02-04 06:50:21.995	2025-02-04 06:50:21.995
+9b442a67-f529-44d8-8a69-3446ca676f5b	\N	$argon2id$v=19$m=65536,t=2,p=1$ab/ifKcEQ6K8jsqs4+VN7R4uGCLzZoB5r1p3Qbdf+U0$a34caQcFZRXW9jXAmlOZSlI8KjO/eSBNpvDBWUUBoMU	Sépha 	Compagnies 	Abidjan	Riviera palmeraie rue ministre 	0702789356	2025-02-05 11:27:32.225	2025-02-05 11:27:32.225
+d8885560-1c64-4826-8edf-722c40c15618	\N	$argon2id$v=19$m=65536,t=2,p=1$C4cqu8jCr0s1TpGJxuycQqPMAoY2edMpCMjXcYxiKw8$yvgGXLkrDcNlYpbawnobGhjTHEkzVpnajVaND6/Zr+8	Martial Steven 	Loka 	Abidjan	Abobo akeikoi 	0709512712	2025-02-05 20:10:43.493	2025-02-05 20:10:43.493
+6149ce69-c8cb-46ae-b555-ad45ab6e61dd	\N	$argon2id$v=19$m=65536,t=2,p=1$0DS3/BaTqrZjtKOQQ3C1cFAONeGaWhlzoNoGWITWDB4$Gp13nw8ReU0W74HJm1rCQTsHdNqVWST73P/dOMARNDs	Sosthene 	Konan	Abidjan	Yopougon ANANERAI 	0545297755	2025-02-06 10:19:33.531	2025-02-06 10:19:33.531
+6b312180-cc34-4a14-8dab-b33c7a024b5b	\N	$argon2id$v=19$m=65536,t=2,p=1$KIhx+zRZh/1hTsDoHQU/KMYyxfLf4jAqUys3d9QNg1o$eO1b9QXxomn8UBc3nEmvhG8iQJ6r5O2/LOYeglgEebo	Gaitan kekeli	Dotse	Abidjan	Angre	0718023603	2025-02-06 13:57:30.534	2025-02-06 13:57:30.534
+59e7c38e-873a-472d-b186-8f6881c8e188	\N	$argon2id$v=19$m=65536,t=2,p=1$ElKt4ABjzLVo/oyFvzZ0MD/ylf2tvOxCznAC0aaVQH0$boWhtb7t4goy4QO0sYm1XeGFTBniDyBWGxMZzCB6gec	Manuella 	Yai	Abidjan	Koumassi 	0748962909	2025-02-07 01:07:47.684	2025-02-07 01:07:47.684
+2717fc93-3552-4048-8bc1-b43b367e42aa	\N	$argon2id$v=19$m=65536,t=2,p=1$RYQGsxF6jHpXAMX0p2c1K7qGLHg69qAkZ7WF7Y7Irmc$PKzAxJiOZVztgLQAS3rsTwc1TJdrj+1reY++iLkvPQs	Camara 	Issouf 	Abidjan	Abobo 	0707886923	2025-02-08 14:24:46.885	2025-02-08 14:24:46.885
+0fee81b3-b913-46ac-a29d-ca4b7d79eadf	\N	$argon2id$v=19$m=65536,t=2,p=1$6hlrnhwaBthXinafiogEn17ZFEG0a+axaGwLBq3OE7Q$fkK+me4Ij2FO4ZvwJfKAaRxqdZ+kM/NFH8UzFFPyWQs	Stéphanie	DJAMA	Abidjan	Angré	0789440611	2025-02-10 19:50:47.895	2025-02-10 19:50:47.895
+a8cc4fd2-6035-4d51-bab3-31f2e8f15fe9	\N	$argon2id$v=19$m=65536,t=2,p=1$1PpyqlE2t+iX/4qs7aYBtX+AHxYet7omTreDYXnJNYQ$3VE5BOoPFJMuBpMPG+og/BSF8eBLFxAg8HO0R3FVYMk	Lolo	Koura 	Abidjan	Koumassi 	0566794779	2025-02-12 09:17:52.599	2025-02-12 09:17:52.599
+a21a0aa7-6f3f-4228-9ed1-856c022b930e	\N	$argon2id$v=19$m=65536,t=2,p=1$qfuXIrxwNVWlas7WSYuRTQ8zb0PYIB96ONXqqjbDVaA$8nS8rydJqaQrLCZtiXD4SGTZPDL06bmPPgujc6bj0w0	Renaud 	Derosi	Abidjan	Port- bouet	0101544846	2025-02-13 12:22:30.982	2025-02-13 12:22:30.982
+84892393-ca23-4f54-870f-befc348c6765	\N	$argon2id$v=19$m=65536,t=2,p=1$u5HIntztpr+7JhRfgS9w9gs9MjH5en30LFRjR2/2oLo$0XhW7wpTj9Y4PoBPFOBqeZYOIZi3R80knKbjpf0ZogQ	Ibrahim	Sakanogo	Abidjan	Port bouet	0708520535	2025-02-14 19:20:27.975	2025-02-14 19:20:27.975
+7a37d59e-e4cc-4861-8fe5-bd62effb3144	\N	$argon2id$v=19$m=65536,t=2,p=1$/YasOXFcBu39p7CYU3e7qTSbXzs9076JlE82JKh825s$TVCyVoJSftzTSWFE2F/SIKsRlc4oUqFJ7j0GzUScqfw	Chimelle 	Gbogo 	Abidjan	Abatta carrefour Drogba 	0500136783	2025-02-15 10:35:36.512	2025-02-15 10:35:36.512
+ee22b1b8-4b32-45d0-ac7a-a35073b5cadc	\N	$argon2id$v=19$m=65536,t=2,p=1$4GvqQ6dnZ7q1QO4vuOObiEzOXVlA4X/yTGTxI3J6wQo$lkYSWM8CPOIbyoQLhHVLq11rODddK6mzJOlUuyzXOn4	Kamenan Achille	Amouakon	Abidjan	Yopougon toit rouge 	0709057436	2025-02-16 16:23:22.702	2025-02-16 16:23:22.702
+64176994-8c14-46da-b2a5-f630f3daf665	\N	$argon2id$v=19$m=65536,t=2,p=1$2xRzf+h7qRI6L7GQO76xUJQEkUhn25Rb1uOMhf8jEZM$4tIXicyE2dHgphGhM2jXV37YtjDA31UgdFM8BL1cNEA	Sandrine 	Yeboua 	Abidjan	Palmeraie 	0708711623	2025-02-17 20:29:06.089	2025-02-17 20:29:06.089
+a9227f90-1c6a-4cd7-bdff-2ed30eec5053	\N	$argon2id$v=19$m=65536,t=2,p=1$iGQN4U5Kt7IOqvKFh6ZPXMSfTF6kPNhpACndw96TSpw$ELqGZ2NnILNRvXCmRAN38twWxjBQ8cR/KnN7H/WzwB8	Stéphanie 	TAGRO	Abidjan	Angré Chateau 40ème 	0768290395	2025-02-17 20:30:18.585	2025-02-17 20:30:18.585
+950273e2-97a0-42c9-931f-cb48f8228498	\N	$argon2id$v=19$m=65536,t=2,p=1$kUfDQAdOPff/KDS9u5M4EFuzNrIva7nAEz76GeBXlGY$z90LSF5fuNxHRqG43LTl8DfEbFg6EQQmvPdjqHIkXUU	KONAN KEVIN 	KOUASSI 	Abidjan	Korhogo 	0757511294	2025-02-17 20:48:59.823	2025-02-17 20:48:59.823
+503ce66f-0a81-494f-bcc7-ffd9f1f6c6c0	\N	$argon2id$v=19$m=65536,t=2,p=1$NVsAujHDlhbPoQzK+/RBMBGE/qPdz+ZZuxtpH7cDdGc$VXH7NUlvoO0PLQAsYRehDDLy4LVlw9NLUhbOFs7wa3M	Yann	Best	Abidjan	Bingerville 	0708097308	2025-02-18 13:28:19.042	2025-02-18 13:28:19.042
+1cdd4344-20c6-43b8-be9a-acfde7eabb2d	\N	$argon2id$v=19$m=65536,t=2,p=1$Zv/88YgEkCI3C5ITeIRGciEifQUDHbSCr5d4qyR1OC0$LR1kJTERX51ahwrce4KLEq5TVM4LYeE9gIQl1PwOCsk	Michael	AIBA	Abidjan	Bingerville, Paris-Village	0504820505	2025-02-18 15:01:57.054	2025-02-18 15:01:57.054
+5c92f41b-689d-42c3-a6b3-1cad9b902f9a	\N	$argon2id$v=19$m=65536,t=2,p=1$IXNRObWc0uW9txY1ftCzbO6qy4a8A3V+KWcJhxzjZOA$Xjd/5EW0loNxZVPHQFp26GX0dkyf5KoWE7YFJdOEoBU	Sarah 	Banigo 	Abidjan	MXF6+7RJ Bouake	0595228525	2025-02-18 21:39:16.342	2025-02-18 21:39:16.342
+dc4558ca-20e7-4e25-a2f7-0af0e9dd829e	\N	$argon2id$v=19$m=65536,t=2,p=1$oLjMTCRw3/U/boU9Myy3wcEaVlby3YXOP5wDu1JQnNg$puvbKpVrsXIu94mn9ba3y/63thqV5dFVNwp2/WGTXG4	Elvire	Koffi 	Abidjan	Cocody cité des arts 	0705258104	2025-02-21 14:06:32.132	2025-02-21 14:06:32.132
+78f6abb7-51d3-415f-a60a-196c6ee87881	\N	$argon2id$v=19$m=65536,t=2,p=1$ozlNaWIEqoFLbUwwGdk75SdstramreR0kmgQ+Kn3jAw$4ZekMGuWw6hdyOqDpo1gPUsIILAhFZ1Vr0aipCeoVBc	Massi	DEMBELE 	Abidjan	Académie régionale des sciences et techniques de la mer 	0700861709	2025-02-22 16:54:25.294	2025-02-22 16:54:25.294
+836d74de-0ca5-4244-8f98-4b2ec0d66f5e	\N	$argon2id$v=19$m=65536,t=2,p=1$rneGuuj1gLRwDAUIrsSIWuE4TJ2vnTSBFge7O23dNdw$7GNg49DoFEP9FeJqc0Sc+MxP3JOjKxcIlhHT7elIqbI	Eliane 	Tiedie 	Abidjan	Akweido 	0556389362	2025-02-25 19:01:31.405	2025-02-25 19:01:31.405
+0069e32d-9b4e-467f-bb49-eb6f362bb542	\N	$argon2id$v=19$m=65536,t=2,p=1$bU6YW11yqzskOiG6SCF5Btpn9oMoZmavw4Lnj/3c6tw$6zy5VvZoRr1HsnbmFsQtv9adA788+Bn1f8Wafq+Y1P0	Myriam	Bamba	Abidjan	Université de cocody 	0101617902	2025-02-25 20:30:18.502	2025-02-25 20:30:18.502
+c2706210-670e-446c-8ff4-630ca8178945	\N	$argon2id$v=19$m=65536,t=2,p=1$L3AEIc9VQtkBLPKwTbo7koE7+VKxNXuJy6/vG7y+rAo$H6TbOzWDSaLsXF0sQG/tPR1k98ekAwCX4iKj/RDKrYE	BI TRA HENRI-JOEL 	IRIE 	Abidjan	Abobo	0102030266	2025-02-27 03:10:58.521	2025-02-27 03:10:58.521
+26fea6c3-2d0d-47a9-88ee-4cc49a5184ab	\N	$argon2id$v=19$m=65536,t=2,p=1$XLvkPCskBgRLPNKDtdYh5KBs+Bz4rD+wNkaJtgulwZc$MiEfAfmklFt2Q2/Yb7Cxv4YO6kNJkAFtQRTBSB9P6qE	Michel 	Jean	Abidjan	Yopougon 	0705254554	2025-02-27 10:25:58.856	2025-02-27 10:25:58.856
+b53a0aa7-52a2-459c-9ffd-e8c88a74c874	\N	$argon2id$v=19$m=65536,t=2,p=1$AG6mn7ZhY3lxgIL3c6EAm3p3qLSKANcmv+p/EI+dTkQ$Id1N+Gc7PEe+K1st3/ODh8b4FPK33GuDzZcUvnh/A5s	Titi	Kone	Abidjan	Aghien bingerville 	0504764644	2025-02-28 12:04:22.36	2025-02-28 12:04:22.36
+fbcb41ca-2c8d-4153-b92d-f13e277555b2	\N	$argon2id$v=19$m=65536,t=2,p=1$ZXYHy8x0zEsVLi8RLR731F7QMNy3+TlfguU+OT+y6R0$K/8ShS4iQ5i7aKjbUo9AkOyYjdcjXQ8h9tjx5f/V+Ok	Nadège	BROH	Abidjan	Cocody	0566060142	2025-02-28 15:11:28.892	2025-02-28 15:11:28.892
+bb5dd66f-9b26-4e96-b66c-10cbe69252eb	\N	$argon2id$v=19$m=65536,t=2,p=1$7K5FnYyJ2hbsvfzcUhQ8gOqsHjn/DdhKdQXzNpHXdtc$MTYeJ6pQHjVecwmEiA23B9WgseirhQ489MQJ4719xM4	San-peter	Drehan	Abidjan	Abobo 	0798920288	2025-02-28 15:26:45.339	2025-02-28 15:26:45.339
+7d6c84a5-d18a-4abd-a898-3d56fff5f172	\N	$argon2id$v=19$m=65536,t=2,p=1$pK6DQ0P0rvec5XEdnfghS5aht8QA/rg18JUwVbXelbQ$8O0brAGNzMFjcQwYn4sYMGVkM1qjVTH2Qv3BZJMWcHs	Clémence	SOUBEIGA	Abidjan	Riviera Akouedo	0797844187	2025-03-01 03:36:08.047	2025-03-01 03:36:08.047
+38b80024-744f-4f65-89e4-6bbbb948142c	\N	$argon2id$v=19$m=65536,t=2,p=1$sL3s5GbBxn3nDr+SLCZKG68zqkRXpE3Wt+NIi9FQcIg$rkKXMFXAfhf6R9idhB6eGYLrnOz4C4nYOI2XbJSWH2w	Grah Aubinc 	Dobre	Abidjan	Gonzague ville 	0502421630	2025-03-01 23:16:22.984	2025-03-01 23:16:22.984
+85dd8f8a-c307-4da0-b019-ba45bf9894cf	\N	$argon2id$v=19$m=65536,t=2,p=1$4rbfMnDyWkDcNpIKfq65g6F1L/fvw0AopIz3RuWaY2c$4HN9mh66qqf9RBXYd75TIi9WSWjdH8NGM7hzzgyouWY	Junior 	Sarré 	Abidjan	M' pouto	0767948066	2025-03-02 20:45:28.978	2025-03-02 20:45:28.978
+364f43a1-0d15-4938-84a1-a914c92c01c0	\N	$argon2id$v=19$m=65536,t=2,p=1$NK/p+5zE31AuYzrpOLyv+osIjBUfqTxV9lifHQRKa0g$00ROHqe+QWB6sI1vpZOM4z9zhllfZH2sqSLJkwkK7Zc	Doty	Ahui	Abidjan	Songon nouvelle mairie	0749166239	2025-03-03 23:05:39.399	2025-03-03 23:05:39.399
+ba403165-55a5-44f6-8581-f7648e55489e	\N	$argon2id$v=19$m=65536,t=2,p=1$DQleC8XNw5dW5/4MtW1BIg2pq0AqV+QoO/0I2zgBt/A$iVC8VaqmCkVe0affELwB9LtiA3xYJQ0gjCFONCGrfJI	Zola	Pirex	Abidjan	Bingerville 	0170156279	2025-03-06 18:57:49.967	2025-03-06 18:57:49.967
+f5b0d370-7094-4049-bd3a-bf86c0a488cf	\N	$argon2id$v=19$m=65536,t=2,p=1$hUBqTTKWa95k5hw6XTDxHymsdtayVdZTTas747DU7D0$uQuIWLZFRkk8F+ge6dAV8tz15dp/B7Zr6T48rWLZLFk	Rebecca 	Gnakpa 	Abidjan	Bingerville 	0757749789	2025-03-07 08:43:15.479	2025-03-07 08:43:15.479
+7f0d353e-0478-45f3-9a8d-18e92ec33369	\N	$argon2id$v=19$m=65536,t=2,p=1$KSMLnmMXPjOY1RpFHGVglBVEgxOaDKzOPfeTUU6MeIw$3K9ZQk0OZyZm5Fk8/nBY3sJ4dgFCLQLDJQpBJ1vsyxQ	Stephane 	Nahounou 	Abidjan	Cocody Riviera 	0707425040	2025-03-07 10:35:30.094	2025-03-07 10:35:30.094
+be8201b6-3685-4256-bb97-7e6db6fa2fd2	\N	$argon2id$v=19$m=65536,t=2,p=1$D5JThk99M8OeA+VaqMUnaclO9lxzcyDQzll51gAm0z0$zpW2yY+uffmtUDpCwO/xsGZliHz1GiLTxPh/Oe6NjUE	Ouattara 	Baba-Kan	Abidjan	Abobo-Akeikoi Millionnaire 	0101061555	2025-03-07 17:36:32.788	2025-03-07 17:36:32.788
+28d8f675-8514-4ff7-bef2-a2f14f10773c	\N	$argon2id$v=19$m=65536,t=2,p=1$cSgpon5xIJ/+teo2yB1C2iApJMQd+GNox+P43C68uzE$xpbU2SooB9nm8Y53nfX2rt7Jb8QWDKRIzSsgTv27lno	Yasser	Lebbardi	Abidjan	Valón,rue de jardin	0715755208	2025-03-07 22:41:57.789	2025-03-07 22:41:57.789
+02fae398-6415-4895-9e4c-9816ce474f01	\N	$argon2id$v=19$m=65536,t=2,p=1$j9N4MVNsJyk/5PNKLKk7i45aAW65IJcbnwh5ZwqYD9Q$f/b6wdl+8EEvh3BWeqA9yq6QUJ35T+AiUlS8BhwvZqo	Traore 	Sekou	Abidjan	Koumassi campement 	0143806529	2025-03-08 21:41:10.561	2025-03-08 21:41:10.561
+8dfd6fd6-0e42-433c-98cf-92f6fead22c3	\N	$argon2id$v=19$m=65536,t=2,p=1$WI1h3w7ml4JMopYHgRl4YQi6anMMNnaCHZmVG0frkDM$JHvU23zyT82KMe4UblsziGjiHSIRgkACbJBbbB2dH5g	Allassane 	Cisse	Abidjan	Abobo	0160179381	2025-03-10 12:46:54.932	2025-03-10 12:46:54.932
+fae485fe-e5b6-4459-b3e1-7ba96f532a4d	\N	$argon2id$v=19$m=65536,t=2,p=1$tGJ7f5mHcVDFqNbEWxKvUON58JUINwj/k8adFMRscUs$UBR/QHvfbR8833IlYQVKqcyKCRdKlyZckW6Km73seSo	Kone	Massaba	Abidjan	Abobo bc	0545132353	2025-03-10 16:40:32.461	2025-03-10 16:40:32.461
+6d104662-ce11-474a-8a3d-4463b9814731	\N	$argon2id$v=19$m=65536,t=2,p=1$Rr+lPIcacGtgi9VscZUmWwc8r3/qlZ/8N1Npemo9o1s$ZSg8cy0y4/tMC+GrZqyz9bUBhHjvRLOhwTDcIlXIoMo	Jean yves	Soro	Abidjan	Abobo	0757134469	2025-03-12 10:33:45.73	2025-03-12 10:33:45.73
+f70ef0a3-2452-4995-b0f3-ce55159ac234	\N	$argon2id$v=19$m=65536,t=2,p=1$274Qh/Tb8gSwSmmv49/8wPpGbMY1UjEwmHwpCHSwLzA$LGhXF14iYa0G6uI6Z5yUw2fnA2aURF9og+2kuS7xeEI	Machou	Kouamé 	Abidjan	Faya cité prestige 2	0788321342	2025-03-14 09:41:56.718	2025-03-14 09:41:56.718
+b02e52c0-d0a0-4d1e-923a-81906d6da040	\N	$argon2id$v=19$m=65536,t=2,p=1$TEvX9k3c6Z3TMnAy4PFUinvtGHdAartrfFVsrLkLJWo$Y4yossc6EQuEIiOxYcAWiEa/6OZemN5ANaYll9Zfoq0	Guillaume 	OKA 	Abidjan	Cocody deux Plateaux 	0707935192	2025-03-14 11:50:03.501	2025-03-14 11:50:03.501
+d788ad46-06c2-49b8-902f-10e4f1465a45	\N	$argon2id$v=19$m=65536,t=2,p=1$z+b3WvkcCmgqNWkvq5iyp5bCokewlJinGUt7kn0m6yQ$uoOZMOzM0pmypvJHIWzRdhAwK8ka5+xCKHdbl4AAMrM	Josué 	Yapi	Abidjan	Yopougon 	0788464590	2025-03-14 19:18:15.961	2025-03-14 19:18:15.961
+e8728415-0a26-43df-b422-bd8230ac2758	\N	$argon2id$v=19$m=65536,t=2,p=1$qAUPzDKcCmvHZhovwWBuEehhaGV5hNYFrVfHoBRmuOA$jGYhpERA/KoN4VriwuPOE9n7oNTw6PgirJFknr4gfPI	Sylla 	Mamadou 	Abidjan	Yopougon sicomex 	0707757256	2025-03-14 22:07:29.032	2025-03-14 22:07:29.032
+4860b38e-b25e-448a-996a-c4a80ded05c3	\N	$argon2id$v=19$m=65536,t=2,p=1$mGc1rI30rKlgMW0UvXZP2N8MAxCMullgVh7c6U2xXm8$/u90lOdV+HN0YPsxDV+kUtwDUKsr5cl5YwWK5H2IcTw	Jean 	ADJÉ 	Abidjan	Marcory 	0101330917	2025-03-14 23:36:40.071	2025-03-14 23:36:40.071
+b2e1477e-142c-4280-a179-c407a2e2240b	\N	$argon2id$v=19$m=65536,t=2,p=1$2iBKAMsYiyyuT6owEGVavjP1RoQ2vvQELAjePzrm7Qc$PwNF+hdQwGI0QsrJz8gmX0ef0tBKKSbDHxidcWaYV8U	Paul	Amoa	Abidjan	Riviera 	0757335450	2025-03-16 15:17:53.525	2025-03-16 15:17:53.525
+d397ae5a-73a0-49a8-a430-29b0d31c432a	\N	$argon2id$v=19$m=65536,t=2,p=1$tbnBPrpjHDFswlpT+ZhkLlKAGrGVXjWqLVj0HxiPaj8$k9yIBrI0WH3HAjRljK9YhsFllgjKITaSYKNCOaxm+Yg	Mohamed 	Nanho 	Abidjan	Abobo	0703802501	2025-03-17 09:49:45.054	2025-03-17 09:49:45.054
+f4c1f675-8e04-4dfc-8a9a-0e0404d060ca	\N	$argon2id$v=19$m=65536,t=2,p=1$ONl1nmVdyeYakR6JYbQPW3ZIftmPQcGXDmZwFI8dOsQ$v6LG7isxNZLVdOFP+jedMu7VZtOIKOg7HuOmZyOtIhY	Jean Paul 	Kouame 	Abidjan	Dokui	0788337634	2025-03-19 20:31:25.64	2025-03-19 20:31:25.64
+b8027f39-d40b-4c9f-81bc-601f12849be1	\N	$argon2id$v=19$m=65536,t=2,p=1$JstygmGPoHAAeMvTI/NkC+FgfZYDFB2RVHKLzgLPTdI$AYrGBThz32Wvzy2+gng6x0RF+j8ke0s9w8jUbQyVidg	Jael	Gadei	Abidjan	N'dotré	0586222498	2025-03-20 21:11:21.127	2025-03-20 21:11:21.127
+aafe0f69-4ca6-443d-9d56-f988734ca475	\N	$argon2id$v=19$m=65536,t=2,p=1$jQ6ejvbL1n5C0rxNEQ+8556IV9gMTTGyy8r1urrjz7c$5aNZpabKiYE99FgOpPwU4XzFzIKvBb0Mi6bl8mOd1DY	Madame 	Coulibaly 	Abidjan	Paillet 	0768589179	2025-03-21 10:53:08.913	2025-03-21 10:53:08.913
+266f1228-d84c-44c7-972b-2f775079f6df	\N	$argon2id$v=19$m=65536,t=2,p=1$as6wrH3ylDW1h0W0xh4NWBUPMcF+5z3oA812BEJcy0k$qIRaZEvBrMumes+OoWptCeJydjSDVpplsLoA//JzZ2I	GBEROUKOU	Yapo	Abidjan	Cité adohha	0747901474	2025-03-25 13:44:48.396	2025-03-25 13:44:48.396
+916800ec-10d2-4146-8464-95b944c27417	\N	$argon2id$v=19$m=65536,t=2,p=1$oeahMphaj+dlm/iF21ZLrSj3i7kkK6H04OjBP4moxj4$nPkyl8A89YF6w8yEapPfoxU5m7aKeFANeNrWJoAvXJQ	Idrissa 	Touré 	Abidjan	Yopougon 	0707297978	2025-03-25 19:07:24.84	2025-03-25 19:07:24.84
+d66508d2-6214-4d4b-81be-f6bf78c3c01d	\N	$argon2id$v=19$m=65536,t=2,p=1$N5mREo+89OGhRjDcokKEzY4OGj0s3OL81CQSd8/9FxE$fm7C82YFtyXwbqoiykw3hH8IxJVlQ6xGwkD3AYpoZM0	Mimi 	Mimi	Abidjan	Aghien 	0779114155	2025-03-25 19:48:32.859	2025-03-25 19:48:32.859
+f0c29774-d67a-4b5d-9a5f-d573c69ad6df	\N	$argon2id$v=19$m=65536,t=2,p=1$hRVKcIx5A6h+kfWfaSUzCWrXNGfF888KEg/qlyfbWoM$v01f0kQ4GczKnrsbjO+Z19hSz1JVVMJOVCR/ZIz1HBw	AMONGUI VINCENT-DE-PAUL 	SIKA	Abidjan	Cocody 	0505234655	2025-03-26 15:31:36.18	2025-03-26 15:31:36.18
+79a8a280-cfbb-40af-8ec9-e78ffca6eb67	\N	$argon2id$v=19$m=65536,t=2,p=1$QCf6vc18oX9yKx9+1wnG2P7EY7SiS+7aJg6W5CO4aRY$HmOFIxv2gG0VBALu60Fwe1unzANZ/coCzsEcRfGfQj4	Stephanie 	Assi 	Abidjan	Yopougon zone industrielle Micao 	0566255598	2025-03-26 17:08:21.84	2025-03-26 17:08:21.84
+76886aa5-a69b-4c5a-a9b4-1715e6b362b3	\N	$argon2id$v=19$m=65536,t=2,p=1$LcFvY+NamgzAY1XyZpOZY9C+B+sYqNLLiYw32LcI7kQ$f7LG3cEeLtZzyZG9ODDWE7MFmjGfGTQpRl9K0YbGi/4	Rolande	Gbèkan	Abidjan	Bassam	0584963055	2025-03-27 11:46:24.231	2025-03-27 11:46:24.231
+032af510-798a-4ab2-b1a6-155aa467f511	\N	$argon2id$v=19$m=65536,t=2,p=1$rA+c2Zu7aHgolnw9jvESmODYN17kZKe/YM0FDp86B70$cvvTChCsmGk+TS9ALu81I7/xGfH4j8JSu67vgb9DYwg	Ersy	Michael	Abidjan	Yopougon	0707599222	2025-03-27 17:17:12.274	2025-03-27 17:17:12.274
+c5ca0128-14d5-4739-8d17-6ddfc11a8a4c	\N	$argon2id$v=19$m=65536,t=2,p=1$kSVucR5Iy5fG3mz6UQZZXlya2HmxRX3V1Mg3HfPB6W0$iEAezv7Mr9BEEa5+VsNkdcfWx+8WMeKKdeWbnttT5nU	Kouassi	JM	Abidjan	Anono	0708566030	2025-03-31 12:21:50.803	2025-03-31 12:21:50.803
+e964227f-72d6-4577-8b65-1017aa68def1	\N	$argon2id$v=19$m=65536,t=2,p=1$CR7BTnfu5OHKN6LXwX0lHNT2O0CIxSkcv3ywOm2tC5k$GEgQIPHA7IkQgDRS1f5OhavpVFyZrEDOXOSp03Vwf0A	Yoann 	Bli	Abidjan	Angré Mahou	0787001627	2025-04-04 09:23:54.633	2025-04-04 09:23:54.633
+d9d2c73f-8ff6-4151-b0fd-bdb2898d99f8	\N	$argon2id$v=19$m=65536,t=2,p=1$c1j0WQRZBWazmjS94DgeXwCQoGp77C4qxs6ogJ4VMp0$ak6n5Yii2WQwGi9VY7vjK0y6X0/7WgFgTN9D+xxHClw	Arouna	Diakité	Abidjan	sogefiha(Abobo)	0747960204	2025-04-05 19:07:27.418	2025-04-05 19:07:27.418
+26716332-b50f-46e1-9a8f-dc162d4aa932	\N	$argon2id$v=19$m=65536,t=2,p=1$luhRPb4+2ilFqd1jHEBFCgTidW161mhwQsECj2LEOT0$YtzAgOKREc8z8klmWT6UKBGWAZTrF7VUW/DzAzhWdhA	Christ 	Jr 	Abidjan	Quasirie 	0507721905	2025-04-06 15:09:20.765	2025-04-06 15:09:20.765
+84b99d2f-00d7-46c7-9489-1e1d084fe51b	\N	$argon2id$v=19$m=65536,t=2,p=1$i3bAbJ6S6wCgxSqsqONLz592N9QyB6Yrvjinh43QHfA$SE/PQEJDtn1DZ3140KM3JeqSbQ8iDAvIIXDAAjBRLbs	ANGE	KESSA	Abidjan	rivera palmeraie	0747296570	2025-04-06 23:17:08.752	2025-04-06 23:17:08.752
+67197b94-df67-4d88-9174-e4724f29af7e	\N	$argon2id$v=19$m=65536,t=2,p=1$bGeir7dSP96kq2LakXSCDLFz66+3pdRV1ICe7Ai9QYU$gY7Hs5Ay43rgCT+d4Hq1J87NA9epvjS96A+s6rQgf3M	Emma	Adjoumane 	Abidjan	Rue S247	0160420784	2025-04-09 13:39:32.503	2025-04-09 13:39:32.503
+3f40e32a-11e5-4741-9a9b-e77551677b45	\N	$argon2id$v=19$m=65536,t=2,p=1$HDF5yGq5kB1vs/7lVWhelI+J3pmvbt6U/h7WlxdPfG8$pTCzsHACoMG3vg6TskypPWvUhuxJFzEQEIx7JmczjFo	Ruth	Maurelle	Abidjan	Bingerville	0778405111	2025-04-15 11:58:43.859	2025-04-15 11:58:43.859
+ad46049c-f52b-4252-9d8f-75cffb9c42b9	\N	$argon2id$v=19$m=65536,t=2,p=1$F5slaLHAGl4pOnGBwWUuWd56s4wZ5CtpLf4C2eXIFUQ$KgoW9caRUAXXr8SVpEZ31c43OLHxB3Z2F3WnhZ3bDB8	Winner 	Innoss 	Abidjan	Bkou 	0546678044	2025-04-17 19:37:38.335	2025-04-17 19:37:38.335
+23e972b5-d190-46db-8d8b-ee88105d37c4	\N	$argon2id$v=19$m=65536,t=2,p=1$0Avobrk4eiQuthuBmS/H/rqsCQNzrJ1evtUGlonzy2o$D6+bqWRmalpsHi0EAOtkXC49ZobqFUJ7Z9cONnTmNGs	Yayi grâce Marie Laure 	Libiho 	Abidjan	Yopougon maroc	0769489055	2025-04-18 16:33:26.374	2025-04-18 16:33:26.374
+a3157876-67aa-4df3-94be-6fc8a34c1762	\N	$argon2id$v=19$m=65536,t=2,p=1$wgq8rdLkV6gleQtpVjURU/QkuqVaaelwCacNz/9L1Rs$EKZZC5ZjrK/75T8rF9+2NG2tdikD17JmsO5qE5d8/sM	Alima	Doumbia 	Abidjan	Motard 	0161030186	2025-04-22 17:16:51.638	2025-04-22 17:16:51.638
+40b7540f-bc8a-4fe9-b18b-d5db69074d03	\N	$argon2id$v=19$m=65536,t=2,p=1$5K/Q1Q5nbFJPP588AcQVbFuyg2f07cJ1NrRTPVaVuEY$jOTkaFFXA+eyNlmkkGa2a4O9CDvJyjVTBnPgScV2w34	HERVE	DIARRA	Abidjan	Cocody	0757937181	2025-04-26 13:16:57.124	2025-04-26 13:16:57.124
+c14f3264-c9a4-4394-9b4c-293afaeb32d8	\N	$argon2id$v=19$m=65536,t=2,p=1$hIBgSdSByz9mLHigNnqsipRHYKu0uXZW/ShZDclMgN0$ZvS4ZHMwVlaPcD9f6niE2or1pzSCun9DWvSPaqJNQ2o	Sourhale olive 	Kodjané 	Abidjan	Bonoumin 	0703521434	2025-04-26 18:36:57.052	2025-04-26 18:36:57.052
+d604926c-7210-4f2f-b52e-43734f798d5a	\N	$argon2id$v=19$m=65536,t=2,p=1$2fXzgtq5ftfS8IF5IMY5byc7yRLpCjhUCU+6claSb5g$zpQ/t8uhyLGkUchkg4xmsCsW/Dy6E3pvjo1dINvLlv4	Kouamé Marcellin 	Koffi 	Abidjan	Feh Kessé 	0708054003	2025-04-27 14:10:20.702	2025-04-27 14:10:20.702
+38b54cc2-37ea-4b16-993b-1976f47d316b	\N	$argon2id$v=19$m=65536,t=2,p=1$GMkRnvJC3S1InePV6UeiIIAsiPemhnzPCSv4ofnbMnM$Esm5JqJJVu3DHXGpd03YTGlqFphCjwQnOwOimfStEIA	Joel 	N'ZI	Abidjan	Adjamé Mirador Gare Labelle Transport	0709639680	2025-04-27 20:04:24.406	2025-04-27 20:04:24.406
+9f404a04-8128-434b-aefd-225d7f2f6dcd	\N	$argon2id$v=19$m=65536,t=2,p=1$zGhRrFkOUq0XjR+hVov1maoonj+029egkej0I82hf90$BdVl3Xom2Wx4T5va0E48xynXZgdYfiq1rLSkDkX//co	Habib	Komara	Abidjan	Bingerville 	0758901006	2025-04-28 20:20:46.134	2025-04-28 20:20:46.134
+6b38b878-7299-47a7-9d4a-0f23c4a429c8	\N	$argon2id$v=19$m=65536,t=2,p=1$PlgKB1JhWx+he9n41nEcBYExUlF0JBi1bZpOmjNtNAA$bet3UVw8O4b5S4L6Kk/3WRqHwHNjhBBTNw9JAHf4QSw	Ange Rebecca 	Oulaï 	Abidjan	Bingerville 	0703651356	2025-04-28 23:48:13.187	2025-04-28 23:48:13.187
+9502d79d-8058-4d48-91e3-eb6a6c1e392e	\N	$argon2id$v=19$m=65536,t=2,p=1$ExLRsJAkKOBG+oBA2LEYf3mIjyFRmStQmijmKKvbyaA$TeESGTpw8U6+iq+QdFAh4cXx5SdaNm8guc7YUTuSLAU	Annick	N'DJO 	Abidjan	Port bouet gonzagueville 	0505720417	2025-05-01 20:14:52.208	2025-05-01 20:14:52.208
+9e2e9d7a-d864-4caf-ba7f-4e9568d77854	\N	$argon2id$v=19$m=65536,t=2,p=1$7ndBwAxpQhiKvOcUmBZkt0TnV+yqFcYtr1IeA1b1p3o$97HTzbvyliOTwWuowll+DIpIbHkNGc3i8P40ondpmgU	Mohamed 	Abdellahi 	Abidjan	Avredi cite	0789018152	2025-05-02 02:30:29.117	2025-05-02 02:30:29.117
+741c5947-0e58-4b23-948f-f2551b438ee6	\N	$argon2id$v=19$m=65536,t=2,p=1$7lrCA2TdyDG/6gezjTKDLg2wScNXfSBtocCTFJD8g2s$8JMho8Jb++MdIUvwleH5WDqKBiuPISr+WvdGj3y7f3s	Fouss 	Doug	Abidjan	Angre	0708874938	2025-05-03 14:42:16.217	2025-05-03 14:42:16.217
+044493aa-c960-40a2-b1d4-74c288291c8c	\N	$argon2id$v=19$m=65536,t=2,p=1$rh12qwvnSO4iajSGXRULHkyJ2BPXdVhs69FmxUR+0r0$657wefMFw2zc4FKe6EyNWeTGJic4rTJroGrvdbwswaE	Aymar	Konan	Abidjan	Yopougon	0759151900	2025-05-04 06:48:19.014	2025-05-04 06:48:19.014
+501d384b-5294-44c1-ba32-4a91ed7f6417	\N	$argon2id$v=19$m=65536,t=2,p=1$0FCq+Pr1QZZ+K48tQDFf90wXExy/r/uTpLryuJ3dMO4$PMBYTkk1gD9ccyEZ7eOvT5wSdF+XCmO4qwaoELWfFZI	Franck	Amon	Abidjan	Yopougon km17	0555132837	2025-05-05 13:02:35.081	2025-05-05 13:02:35.081
+33cf567c-bcf3-47e6-ac07-ff90b98a9b86	\N	$argon2id$v=19$m=65536,t=2,p=1$xZpq1I4PbP0S4jpXC6o8XFetyLAB//fWYi187JSSPm4$zGAyBKYCqvXZa6v0QQLSJWXk7uDJf56ftfyPuWyhO/E	Muriel	Ouattara	Abidjan	Cocody, riviera palmerai	0748055420	2025-05-07 15:04:45.891	2025-05-07 15:04:45.891
+6eb3cf3d-69ce-4318-b349-5097ac7e8a7f	\N	$argon2id$v=19$m=65536,t=2,p=1$XX4B1zWrzI/4Q2TPUWwg2EMnM+ain9Zofu2wHMHdJ1U$ArHxJ8IuPZCqlpaABSMkZRqLBPmg/YIT2+XrU1y8jb4	MICHEL 	KOUASSI 	Abidjan	Yopougon 	0100424824	2025-05-07 15:05:55.057	2025-05-07 15:05:55.057
+994feab9-70b7-4709-9525-1f37c0fd3182	\N	$argon2id$v=19$m=65536,t=2,p=1$EQJ/m9QjgfUsinjCuWfG3UCvXfXN4nhFR8pGd2MtdhA$LB/r5uVJqrIjb1T4Z0WBgyVq/6aFtbO64HFoPFHveWI	Guy Stephane 	Nahounou 	Abidjan	Riviera	0777410680	2025-05-08 16:19:51.805	2025-05-08 16:19:51.805
+802bcc0f-2dc7-42e3-ad16-a34ffab32706	\N	$argon2id$v=19$m=65536,t=2,p=1$OmK7ofMpJXHPsJP+9/TyKsmcSP4fkse6YBtyIkOD6cQ$63xVczkcvDHDOBlzAn0ma/6I/htuZvdAIIk8rJseVcw	Louange 	Louange 	Abidjan	Yopougon lem 	0757748211	2025-05-09 11:04:41.606	2025-05-09 11:04:41.606
+86deb2f9-0eb8-4382-9c69-47bc6f97c518	\N	$argon2id$v=19$m=65536,t=2,p=1$KNAgDu/zjKb9MRzW2oJo8RjYLLcUeYwN5YFAV0FSOms$EgQfIUXL6lNgIkMkcHvqqAlbU/Ns8XTkYY9TGw+DhN4	Behia Danièle-Esther 	Djereye 	Abidjan	Yopougon-Azito 	0596740073	2025-05-09 19:39:02.004	2025-05-09 19:39:02.004
+f0cdc1a9-1ae5-4e1d-bbd5-22de4b5dff6d	\N	$argon2id$v=19$m=65536,t=2,p=1$RFEY7YT8SppRSnwfFp9IAeR/ey7NealZqXDSriLngA8$Xn49Ahlc8C+MY9l5OwGCtUHdH7a+L7lsDH++eq0srT4	Kouame Effi Paul Marie 	Yao	Abidjan	Abobo agbekoi	0500294823	2025-05-09 19:42:42.493	2025-05-09 19:42:42.493
+ba1af430-c77a-48ce-b168-deba31c5e458	\N	$argon2id$v=19$m=65536,t=2,p=1$s9ab/4n7lf0o02UqFKdJxnqgOJ2xAlXRtqARLt7RrT8$9UaskpRaQhDo+7UGVbHFTghVai0VYDo63sygu24ZJLk	Siguifolo	YEO	Abidjan	Yopougon	0759132344	2025-05-10 06:03:19.078	2025-05-10 06:03:19.078
+c418d729-5576-4c85-af4f-c00175193913	\N	$argon2id$v=19$m=65536,t=2,p=1$8XOiYBpLSD4tn49AdIqQ5B7LbLuXskQHpGgWbgGQZ0s$Yf3Kvyz6qqK93HWjQMFTvb5wr0XXjSFbZkzV9l5ju5o	Rose	Djigbenou 	Abidjan	Modeste	0778030969	2025-05-10 06:39:43.669	2025-05-10 06:39:43.669
+0ee66c43-c54d-4707-b5d2-b82860d3eb80	\N	$argon2id$v=19$m=65536,t=2,p=1$Tg1fbKkpCpeSPZhfLtqisPdOfTAbwmOZOsAxxVio3Yg$uyGEvrknfkZO9nonpuXoMiOtDMIHqVXEmJ1gMUa0eBA	ABOU-BAKAR ICHAK 	FOFANA 	Abidjan	Abobo 	0505308810	2025-05-10 08:32:50.943	2025-05-10 08:32:50.943
+20c5d35a-2338-462f-9102-f38a0390e2f4	\N	$argon2id$v=19$m=65536,t=2,p=1$JyJRg47itQ4yk+XjL0NEukv7xhXi6ITuTLHq5GiYmp4$D7U+1ESiyyhbzf++Wum5eQvurd9yldwOnkyzRDfNews	Rosanne	Tanoé	Abidjan	Abatta	0707039215	2025-05-10 09:49:09.507	2025-05-10 09:49:09.507
+0d1f0e3a-d5ab-44c5-befc-d0ec0a54d84d	\N	$argon2id$v=19$m=65536,t=2,p=1$cc6xYWjYISIVGWWDoQKjiJV9kOOrrUCuu+IKh53MrSU$wiIUWxDKjfCAPR+T4l36RcDVR3/cJOnUW8iH2FkPtV8	Lydie 	Dable	Abidjan	Yopougon 	0757439241	2025-05-10 10:49:57.331	2025-05-10 10:49:57.331
+385c2d26-f2b0-40e1-8c29-d5b5d5d6c653	\N	$argon2id$v=19$m=65536,t=2,p=1$0l9RHlVeM68WtMjVylo2Rr5LWmI0Vb598AOQXHgvj2o$QdxWswCELUrNsTO7F/wglme66rxqC0MBiF+2W+OCtO0	Stéphane  Chris-Loïc 	Aké	Abidjan	Cocody angré Djorobité 1, Carrefour Golgotha	0575753391	2025-05-10 15:08:27.095	2025-05-10 15:08:27.095
+64cce321-9bb2-4f88-9b03-407231659165	\N	$argon2id$v=19$m=65536,t=2,p=1$7fU00z/ndT5r3wyHFCOZfimH6O7sMixF+f90NooQGX4$p7HidA2oeiAPnbqAmi/O9yAHT7HPmOBVVpHxJsI3sP4	Jean Yves 	Konan 	Abidjan	Rue niangon	0713286065	2025-05-10 16:47:14.703	2025-05-10 16:47:14.703
+c0dd9f68-775a-4409-99f6-f451ee77eaed	\N	$argon2id$v=19$m=65536,t=2,p=1$y6WftR2LfloigQnWw6NmbkjVAW7eKeqo/ogwWT7Lnws$O8Oh6khFGle4DDVTLVF/wpFm7uLUlvcQNwPZztEivMU	Ange kevin	Doudou 	Abidjan	Port bouet gonzaque 	0709581381	2025-05-11 14:20:01.877	2025-05-11 14:20:01.877
+abd2b1f2-2c0d-4199-8593-171905fc065d	\N	$argon2id$v=19$m=65536,t=2,p=1$VMonJe1zGQDnEzwF+G/Qop69olVltEnDXMUuUGrKpxA$kyF5s6pdcAg/CufkRuG2sFEm8Jl3VnHlSkmugiuFXfY	Lou Mélinda iride Javiera 	Kakou 	Abidjan	Adjoufou Belleville à nani jean 	0565947722	2025-05-11 17:08:26.491	2025-05-11 17:08:26.491
+88aa0f10-a02a-4bc1-9bdb-25d25693c01a	\N	$argon2id$v=19$m=65536,t=2,p=1$mkkela5fcMOAT9Xu+iHVgfB0BsX9jUjQszGbUvB9BzA$jjcD7sEFDGYQbcPnjtwfSWMjSmg6mEPgnKz8XgAmACk	Adjoua Priscilla 	KOUASSI	Abidjan	Bingerville 	0709067579	2025-05-11 19:30:29.131	2025-05-11 19:30:29.131
+571becfb-b4ff-41bd-b1f4-f29f41f45d86	\N	$argon2id$v=19$m=65536,t=2,p=1$78lodY+71K7Jbq4VStsr7cfoRHP8hDQ8cuTIl/HmkZw$VGXCGgrNQPZ+bgiEJ75LywkOHym9SY18ENvpxaq3dmM	Kadidiata	BINATE	Abidjan	Cocody Riviera palmeraie 	0759927836	2025-05-12 11:38:30.56	2025-05-12 11:38:30.56
+91f4e4ba-4e82-4b94-97df-2eaf4f347f60	\N	$argon2id$v=19$m=65536,t=2,p=1$lXYVYmjhCThak8WhdRnleUtM3Zyu0BMChnCQbPoluPg$5PAnNP1eZ54m6jSJnYabzqMYUX9etVlOqF/QHo76BM8	Ursula Deva	ADOMBI	Abidjan	Yopougon ( cité verte) 	0700034579	2025-05-13 12:38:24.783	2025-05-13 12:38:24.783
+4f74ba91-04dd-423f-8c64-a0ae8fec6b9c	\N	$argon2id$v=19$m=65536,t=2,p=1$PAI4JZAweeOtWJprZwhw7gpQJ3+QEttiZ8FdmKMBTkE$LM7JFCfW718mxX9kC7nAyTGXHM0KBf9OOwheNjz3HlM	Paul	Seri	Abidjan	Palmeraie 	0767010226	2025-05-17 13:27:07.409	2025-05-17 13:27:07.409
+51936e4d-f301-48a7-9dc4-1b856bfdc375	\N	$argon2id$v=19$m=65536,t=2,p=1$0m455kRsM7v6mFqcKyB0qo6ZkBUtnIomF/k6xRg4FQI$d9p68yOb7QrtNmx77ga4DwPUrazbmuaVby0HgvO5R2Y	Kouassi	Konan seraphin	Abidjan	Yopougon	0757523122	2025-05-19 00:02:33.83	2025-05-19 00:02:33.83
+029abfe8-c99f-4871-b538-972053dd0ded	\N	$argon2id$v=19$m=65536,t=2,p=1$GNT/dt1RBrJBtNAK24QhSZDtZLTcByBcRMASxYGCImA$hvw2DRRh62JyEd/7vhDBQHTIzqpArEz4mNZxsEdQIGo	Séverine 	Agnimel 	Abidjan	Yopougon 	0747757577	2025-05-19 12:31:36.291	2025-05-19 12:31:36.291
+259b8085-20ec-48fc-8cb3-8596de707ddf	\N	$argon2id$v=19$m=65536,t=2,p=1$2VLdriwh0NsQNv/Q7G2/2UQgyHaDS+W+svQYanNDOYA$TE1moPf9ru8lQ05I3RO7/9IXXulyqzgXomGOGqmQZZk	Aicha 	Fofana 	Abidjan	Yopougon 	0141455297	2025-05-20 16:14:16.113	2025-05-20 16:14:16.113
+70d36d28-4d9b-46ac-a47d-ef64042372c3	\N	$argon2id$v=19$m=65536,t=2,p=1$sjMErJ03ZSdyKGrV7nUrVqGG/AQs0Il+Z1xye46b1HI$vyWCxprOHUsYE/jB10cprE8uf7ws9bq3R/CgwwUx9z8	Lathifa 	BAMBA 	Abidjan	Yopougon 	0759177973	2025-05-22 01:20:14.75	2025-05-22 01:20:14.75
+2d44f5b5-3b45-4bca-9ca2-39f0e347d109	\N	$argon2id$v=19$m=65536,t=2,p=1$WdJ4Tso0Zve+oVQXKvR8t2oW+enhWJMemlhKvf0ouS4$NC4DM/FpY82iggCyM8tUPplyv8zjXB7PqLvwkASBPNY	David Aristide 	Angoa	Abidjan	Gonzague-ville	0789537123	2025-05-23 10:23:00.538	2025-05-23 10:23:00.538
+035c2794-cd73-4b6f-97b2-94bfe8cabfb2	\N	$argon2id$v=19$m=65536,t=2,p=1$nF2esAUuwqSqjGqvrvDJdv0HN/ZwUtyjuAe3TuPjSIs$evWJ+zV2piCnTdyp6bbI4VU3Wj8rx0zHq/qeGmqIzws	PEYENA 	AMLAMAN 	Abidjan	BINGERVILLE 	0707762681	2025-05-24 09:50:28.823	2025-05-24 09:50:28.823
+4dae6d96-4183-4619-bd87-31e3d98ce63e	\N	$argon2id$v=19$m=65536,t=2,p=1$BK07/T4gArYmCb0v9i8nBIEsEz0gflQ2mnL5hIj6i94$BPgxYAJe0syO/gpDGdEBc3egx+sT9BP/PDnkJdPTJwU	Abdoul arnold	Bamba	Abidjan	Sokoura,gagnoa	0171646215	2025-05-25 13:23:49.881	2025-05-25 13:23:49.881
+efc01cda-ea1b-4aa1-8552-afc73721d934	\N	$argon2id$v=19$m=65536,t=2,p=1$iAFu0NZr+632vN92SPzs/idD8znAkxQQ0mHS9ThWsMw$iPdXoqVpZL992iF9GBBAE1r+mxiDiggISsH4Ba66Gh0	Dramane harouna 	Diakite 	Abidjan	Abobo	0504629476	2025-05-25 17:25:49.18	2025-05-25 17:25:49.18
+bfb96517-536a-41ee-a341-1fecee908168	\N	$argon2id$v=19$m=65536,t=2,p=1$xVWggNNJ13cs8pgJsmfaO8dm7cLm3SAn2/S2TulvWEA$JxTdNKxVhv41EPiUAEYYnTcLYdh5Q100mdDzaKIu3JU	MIEZAN 	SERGE	Abidjan	Yopougon 	0747854834	2025-05-26 10:15:14.634	2025-05-26 10:15:14.634
+bfc13df2-dd8c-4881-81b6-2d418703091b	\N	$argon2id$v=19$m=65536,t=2,p=1$XiRtbrM8SmXRf/XTbn8u+fCwPzF/taiC0z1qCUC+x68$j+JcajFE7enlFbArUh/cDKfTapje3rTv7vRcIuPgq8g	Charlène 	Téa	Abidjan	Angré rosier derrière programme 5	0576651414	2025-05-27 17:30:48.718	2025-05-27 17:30:48.718
+3e27388f-3ed0-46b9-8432-47e3b2a3f0a5	\N	$argon2id$v=19$m=65536,t=2,p=1$4e90rp2Cx+1aZjwqhmskl4nROUkGvjGrxx+L61y99Qw$1RgqJJ8xeaU2AeTcn20vM9PPENAq70RKRXhY86FaDAw	Koffi Ibrahim 	Kouadio 	Abidjan	Lagbayo 	0799300221	2025-05-28 12:57:32.418	2025-05-28 12:57:32.418
+5d8076ca-794a-48f4-8bbc-5b4b57027150	\N	$argon2id$v=19$m=65536,t=2,p=1$I1lJSKAZXRu76vlSYwl3fCMkyQSvkbFjthj504YllA4$5xYf1MKZX9C+en5AFnbORgF2TAHTxcGKyefUWGaeaGk	Presley Stéphane 	Akon	Abidjan	Cocody Sodefor 	0703843857	2025-05-28 20:20:48.155	2025-05-28 20:20:48.155
+2ef86fee-03a2-4cc1-bf37-5a3dad21402f	\N	$argon2id$v=19$m=65536,t=2,p=1$EmIOEWUaoRRcQz3WO3hLRlSvCIUoRbGfFnwurAeYYFM$ImJmFTBKADSTXSXqs4djFMpEGayNuWhw2Nx403nB+Wg	Herve	Diarra	Abidjan	Toumodi	0504296776	2025-05-29 12:00:30.676	2025-05-29 12:00:30.676
+c6a7f6ce-13bd-4e31-9a4c-8e1965e76655	\N	$argon2id$v=19$m=65536,t=2,p=1$RoDaOCluCBGsUzX0eQ6ryW8snUSa/IswK5ap1jApyp4$NDTycKuzm3oSjtgwcMtLcrWuiysck6C+9bMN2h8J0W8	Brou	Tiemele Martial Emmanuel 	Abidjan	Abengourou	0747628881	2025-05-29 17:21:18.106	2025-05-29 17:21:18.106
+41f83353-bece-437b-a9da-721a1d8bd569	\N	$argon2id$v=19$m=65536,t=2,p=1$hAVvVp/cYt4FD710vbvqIhQVtZYrxZ3YGc0ewSFJxF8$Wj/KLEjm1xSrIydXMEVqLJ4E/jGRVBq1Vrj3CY6GXXE	Marie	Emma	Abidjan	Faya ephrata 	0708262822	2025-05-30 22:12:14.612	2025-05-30 22:12:14.612
+8ab46fb3-7bcd-4e74-bacf-9767a8df0510	\N	$argon2id$v=19$m=65536,t=2,p=1$Foq58F63ogpmc/HLQoDG9gldBvISkzDt4tqr26ve76M$bKwkZ+py2zkDp1KBoC3fg2svpRoshAwNik1vb1lM+u0	Joseph 	Ueo	Abidjan	Adzopé 	0720074614	2025-05-31 12:32:13.234	2025-05-31 12:32:13.234
+eca12e49-c198-411a-a10d-b43363390a95	\N	$argon2id$v=19$m=65536,t=2,p=1$Pz9EDqV3cmWJNPS2fxKAEBx91svrCzc33d9d0cNfVMU$+/qlKWiRBH3LxxfCL/mRVaWHVL0f/e/1rG9SuqpDHk8	Rokia	Konaté 	Abidjan	Bingerville 	0501374949	2025-06-01 04:12:25.561	2025-06-01 04:12:25.561
+36156d8d-2a6e-4a18-8926-ebfa03889477	\N	$argon2id$v=19$m=65536,t=2,p=1$5WHdIwepWdUWgy0Px2P9ZpL/5odTpxWmr3WC8bZ//hM$9Z2n5nHhudqgEVevi9Q9Mb5WKon8p/uak9SDqh9wXgk	Flora 	sompougflora@gmail.com	Abidjan	Lycée 	0595653981	2025-06-01 10:51:45.136	2025-06-01 10:51:45.136
+a04ca5f2-0f61-46f7-b58d-5fbb8e1e641a	\N	$argon2id$v=19$m=65536,t=2,p=1$hE34Tvy4YbbNjz7MGppBHVdaOoR2BLgXV3RgHvgOAd4$LBMLO5RlHhlo9TjtZCqhHgHSBB+R2kbJF/cWvZezAsU	Konan Mathurin	Konan 	Abidjan	Abidjan	0703473160	2025-06-04 19:54:19.974	2025-06-04 19:54:19.974
+55f09325-58a0-4fc2-96a6-22c60de439a9	\N	$argon2id$v=19$m=65536,t=2,p=1$dBEyx03r2ruNEERmFxLCThKI2OJBUwufhYKPOxR0q1c$LTEcmSGvrWn8tZ2stmrdgsP1GvZlUCYbDC87VuUSLzo	Laurent	Ahoba	Abidjan	Yopougon Selmer	0749043185	2025-06-05 07:27:11.357	2025-06-05 07:27:11.357
+b14b03d4-953d-43d2-a2a5-5b167cdaa1fa	\N	$argon2id$v=19$m=65536,t=2,p=1$Z0C/coQ/0f6+pO/y1qrvpq/IkT1ri48IjH4AC7fOIP8$886cCFtscrfrxwRJPR5XPir0faekCA2/J2EWAZuB4R4	JAURÈS-ARISTIDE	AHOUTY	Abidjan	Abengourou	0142504992	2025-06-05 11:11:56.127	2025-06-05 11:11:56.127
+1d2458f0-60a9-44b4-be99-5de79c78bc61	\N	$argon2id$v=19$m=65536,t=2,p=1$isgA5MIqqtiN8CYCtdicilyGIpMHKsswZkgNggIMrdU$rqJShyT0fwrfyeJRy1nsZryX/L3mEkxibKPcTAnKXeM	Fonnon	Silué	Abidjan	Prémafolo	0788580846	2025-06-06 02:27:06.548	2025-06-06 02:27:06.548
+6f6c83a7-b5b4-4f3e-8beb-6389a4b6ce90	\N	$argon2id$v=19$m=65536,t=2,p=1$wUzVuJaJiHwn98EsDGwxQwE8EMOyhbY3OxHUGLVYAEE$BYJeR7kjkl+veBBEVQL8W6GxdW0x9a6rBqZnnEePHjQ	Ouattara 	Kouadio 	Abidjan	Angré château 	0758895864	2025-06-07 16:38:43.139	2025-06-07 16:38:43.139
+0b9826a4-97d8-4ba2-8841-8191c155ab37	\N	$argon2id$v=19$m=65536,t=2,p=1$RNW3Gwoxk6yBtmZaIBwN3yT0IxmGNmGG0QQO91tQx9Y$obmvW3kvv2S4A2MRthssho+n6bZzPOO3J+GsdIZMyXI	Diakitie 	Vame 	Abidjan	École 2 Odienne 	0749374464	2025-06-08 17:19:37.114	2025-06-08 17:19:37.114
+5c756022-f210-48c4-8171-3c2aaff7003a	\N	$argon2id$v=19$m=65536,t=2,p=1$vYwHU6d350yvvcNdK2ZlTpdKs8+80seCDgzZ9J8Pnsw$YDVuScmbiuIBmd9kHO83Uqsc2+xoZOA6dBl8a5IOM9I	Diakité 	Vame	Abidjan	Odienne 	0505175358	2025-06-08 17:42:34.341	2025-06-08 17:42:34.341
+269a200b-531c-49c6-93be-67d5b661ef7f	\N	$argon2id$v=19$m=65536,t=2,p=1$RlLR0vhMoKIJcKtEDK9KvX9TGHqJH0+ygkYZTazDu8k$8mkwaKzRGFE3yB7M2J61SJqZQJEGgBQ3d3laAbkWlCE	DOUMAN 	IVOIRE 	Abidjan	2 plateaux 	0708274970	2025-06-09 20:24:29.57	2025-06-09 20:24:29.57
+41ae0626-4079-4682-bfc7-4db79463628b	\N	$argon2id$v=19$m=65536,t=2,p=1$z2U42VXZiccS3OnafR1R2ZMvC3lbRxUmgPwLkr9T8yE$zt/k4jmh5i4uwF8n9Nn5Hq3c5zD2/emu4Nj/FYdTnBo	Aboubakar 	Sidibe 	Abidjan	Abobo 	0787952812	2025-06-11 13:01:19.423	2025-06-11 13:01:19.423
+a6979c48-aeb7-47d3-bc2c-a2ce0731e357	\N	$argon2id$v=19$m=65536,t=2,p=1$L8EEglmVDTvVlsr83GUzybym/8pN5uHwtGQsw42jrYE$W2akh5h9VZadBWTvV5v8/OPlYUJt7c+Q9q3ML2HX3lg	Stéphane 	KOUAMÉ 	Abidjan	EBIMPÉ 	0788988911	2025-06-11 13:56:15.583	2025-06-11 13:56:15.583
+b1d7ad26-3839-483b-bab8-84f27073a606	\N	$argon2id$v=19$m=65536,t=2,p=1$gygNe68kUX0EcjRXF5y1QTXzlTJjyEy6L7mD02kxtIk$4ENiMs5zcmBb6NbLSuPvyt+5J0fnD4rklSxwLa5qrqU	Oussou 	Kouakou xavier 	Abidjan	Bingerville s3i 	0749518368	2025-06-12 07:59:22.17	2025-06-12 07:59:22.17
+87119117-926d-469c-9905-456e8cbabb93	\N	$argon2id$v=19$m=65536,t=2,p=1$ipFAlxNAG/uD76iS8+EsoXTpcgqTHJ2lh1Sod9T2BK8$oe5TKPXN9lE0jOGctGZvP4UZGFahaSrqev2PvsMSufI	Paule	SAGOU 	Abidjan	Angré  cafeier 2	0708099160	2025-06-12 10:24:43.236	2025-06-12 10:24:43.236
+26be13f3-65e6-4534-9a55-002b8f88b64c	\N	$argon2id$v=19$m=65536,t=2,p=1$9M0Y/3bfJFLNDx3jOhEWaWDhtUSc5FGzCVmAfrM+GCg$keLC33MfyoNjCesYWFTW8FN49q5m4MJY1cDa8edsMFE	Tarpilga 	Yacouba 	Abidjan	Port Bouet 	0574688250	2025-06-13 19:59:34.557	2025-06-13 19:59:34.557
+8898ffd9-915b-4739-8cf1-b207a4ced420	\N	$argon2id$v=19$m=65536,t=2,p=1$DjytHJH+vlr/nmUI/OGa+lNo5mp7B8/S3vd2RuWZTrI$pT1bnQrXv1sBLpK1Tb9KEPvdFxpYWroYAtuUX/URmxQ	Guy Léandre 	Bahin	Abidjan	Cocody 	0709466079	2025-06-14 16:39:56.214	2025-06-14 16:39:56.214
+6137fb8d-8db6-4382-a32e-c44a7d669ab4	\N	$argon2id$v=19$m=65536,t=2,p=1$jLmV/Pnfv+AWXFBzCPImbssTKPGYb0iR1AZYePhoOZ0$E3xKs9iQpSL0arijm+95yFhtfc67lM1hNJTxpF+vD8E	Richard 	Koffi 	Abidjan	Yopougon selmer	0749145444	2025-06-17 06:34:30.202	2025-06-17 06:34:30.202
+9ac486b7-45b6-4029-b090-0c6245df48d9	\N	$argon2id$v=19$m=65536,t=2,p=1$WK/HfpOVBD64V/OBcuKpzJCqhn1vZEGMRG9hc4TB3xY$cgTUmPhRXFZOv+xKtiss4hC0gG2DDncjyVRp6IcRQBw	Matenin	Karidioula	Abidjan	Yopougon	0506119606	2025-06-18 13:03:56.191	2025-06-18 13:03:56.191
+3714ff59-e51a-42ed-996c-0f63804d59df	\N	$argon2id$v=19$m=65536,t=2,p=1$PFOBHeOgaWimoNjOffpR7EAm2JQCxLziNEACfsDVPu4$eB5M7kA3NqQYokgfUEBsL/irkliKgSkAnsj3Tb8pp/4	Ney	B	Abidjan	Bingerville 	0705446346	2025-06-18 13:18:27.612	2025-06-18 13:18:27.612
+1cfbacb6-7177-492e-96bd-1ad1ef8b5ebc	\N	$argon2id$v=19$m=65536,t=2,p=1$bu1D9LSi9PjmMKQBNvxFA42PDy5YWDlo4/aHJbUMyB8$7L9yQ+rKKTE7W1tmQS6VcqP+S1KrgC6PyyNaDjCqChc	Paul	Bukasa	Abidjan	Cocody	0143536153	2025-06-20 02:57:18.737	2025-06-20 02:57:18.737
+84189595-2b28-4052-bb55-0334a4cb663f	\N	$argon2id$v=19$m=65536,t=2,p=1$nKLxPMETcb0LuLR60Sr+3LIxTQsyozke1lZVLyls7Os$RbBR307ap0pfGmybKLF1RdF2Qh8O5DGv7Mngruroel0	Sansan 	Hien 	Abidjan	Abengourou 	0757104124	2025-06-21 09:09:46.134	2025-06-21 09:09:46.134
+77042363-4cab-4592-8390-ada82de591e9	\N	$argon2id$v=19$m=65536,t=2,p=1$/uHHQhfARq8abSEsSWr62YBDu5xf4muJ/s3vRJ/hkGI$sAFKmbkzoGbrjbOS9yrzmJisSQqcgbadZoaB9zOT6Jw	Soraya 	Silué 	Abidjan	Abatta 	0170812795	2025-06-24 12:11:56.898	2025-06-24 12:11:56.898
+1aa14359-70db-42c0-8e7b-230f480b44fa	\N	$argon2id$v=19$m=65536,t=2,p=1$ZOZ38EdKsZD5Y55XtTRCRGjA4GYLDDqc/imwBdC/s24$DXt6+mH4+J4MtMCfgONAWsA/bfLLHKlp/PUyGpJQrjs	Jean Ollo 	Midjour 	Abidjan	Abidjan_cocody 	0586805575	2025-06-27 09:09:33.116	2025-06-27 09:09:33.116
+9b810ef5-a9c6-4b57-954d-8483c3a52ea0	\N	$argon2id$v=19$m=65536,t=2,p=1$GcESykiE+BCq1SpTQhP7JBiN9yvKCJFEpvZNI/NL3IY$5alqm3w0usrN63h9PSAFmUO9XJ9qYjZM4hcXNDHmrOU	Stefy	Stef	Abidjan	Bingerville 243	0506063260	2025-06-28 18:04:28.643	2025-06-28 18:04:28.643
+c7ae96ad-2d81-41f3-be28-0a418dc8aba8	\N	$argon2id$v=19$m=65536,t=2,p=1$qXo39WnGlldPKw0o9DGtS4RI532wmaKOSGNALkMutWo$AxsxKX/aeZu4tpCoFe9E2JsUvW9Kmb4U0+ag6p49zxk	SOULEYMANE COULIBALY 	KONAN 	Abidjan	DEUX PLATEAUX AGBAN 	0777918822	2025-06-29 08:03:33.483	2025-06-29 08:03:33.483
+a90ff259-c848-4cd2-83e1-40fbadd4656b	\N	$argon2id$v=19$m=65536,t=2,p=1$kGXVwYOP8/A/dZ7RbyluPxo6LDgeNO+6ofVWNrw/SxI$oEv0ADu/ajSh2DiFG/sbGAWq8rWuRzIn/OcI6xiN1yQ	Emmanuella 	Esse	Abidjan	Nouveau quartier 	0595847644	2025-06-30 14:32:12.878	2025-06-30 14:32:12.878
+72114e54-5ade-4e4d-b59c-f42c4ce719b7	\N	$argon2id$v=19$m=65536,t=2,p=1$tj/pWyHsns836RQRllUzgcfVERDbG3p9+fwvwFW0Szw$Zo15+Pi40QIxydABPNSPgh9xmdBS0IoiZny9oTssePM	Seoué Wilfried Venance 	Gouléhi 	Abidjan	Bel air 	0711978715	2025-07-01 19:27:36.898	2025-07-01 19:27:36.898
+355f8b24-b4dd-4802-80e4-2ec93ad957af	\N	$argon2id$v=19$m=65536,t=2,p=1$Lowy3gQuiRWyQ6b+fD7uCxNPL3nqb02NurMgh4/FVNQ$FEc+DwsgY8IN1lBTsrljhcxhonFAVgS/6OtAbM0hSao	Toussaint	Kokora	Abidjan	Yopougon Niangon	0505367462	2025-07-13 14:27:21.136	2025-07-13 14:27:21.136
+f2a6e388-5b1a-4035-bd4b-9c5ffe3cd192	\N	$argon2id$v=19$m=65536,t=2,p=1$cy+ggjOehHAH1yFiEut/IhFsbXe8C4LV0fEHuq/G8mQ$CiqIknpWS/Zomy3BTxUMqAPKKKTgeA7EbtQkAQI5HWM	Mouayé	N'guessan 	Abidjan	Cocody	0713231387	2025-07-13 21:03:22.436	2025-07-13 21:03:22.436
+cb54f9ac-2b61-49b4-8983-f5a6ed3cc0aa	\N	$argon2id$v=19$m=65536,t=2,p=1$omGZIXPauWv+9t5NkGRg4xViTCMu0C3E/sLvJAbX5Hk$ofzTeHSlhnHhXq+xVuD1yl5UC99dOHKkHXonloHDmnw	Andy	Adom 	Abidjan	2plateaux les perles 	0708038738	2025-07-15 05:59:10.762	2025-07-15 05:59:10.762
+38ce8d81-e4e1-4d13-81fd-d3f27b5b5a30	\N	$argon2id$v=19$m=65536,t=2,p=1$f0Gg26TtMeFOhrgYTjVVIRR+6LUqKhDqZJFAKnhPhKs$d4IL0BK7dUBZlaL8qr783LkPaV8iEUuw7MayZvZgQw8	Simeda 	Ouattara 	Abidjan	Paillet 	0708905393	2025-07-15 13:59:02.347	2025-07-15 13:59:02.347
+21d7d61d-5e85-429f-9bac-86e206efe001	\N	$argon2id$v=19$m=65536,t=2,p=1$4JDPR7fLoEZ8w7fejd7EbIUqU/FNJZGNdG4Mx1LgJlk$QEx0ObsQYtK2ywfuG6igIIbaLrLTMYcyBYcR8UmnbAA	Fulgence 	Koutouan Kouamlan 	Abidjan	Koumassi 	0102545728	2025-07-15 15:09:57.591	2025-07-15 15:09:57.591
+3d0e4ac5-5f5a-4390-b1ce-1063156a05bf	\N	$argon2id$v=19$m=65536,t=2,p=1$fprtmsgTtSSAiRe6zNYMfsGfd3B06a6WybN7bPPtqOs$0aWot7kvRKae+LX2mslVqhaAGVRQ21KgtUjo5t3ded8	Asta 	Ouedraogo 	Abidjan	Millionnaire 	0153761896	2025-07-16 09:04:22.849	2025-07-16 09:04:22.849
+deb9b728-1454-47df-aa83-8a14ae04e571	jeanyveskoffi1996@gmail.com	$argon2id$v=19$m=65536,t=2,p=1$vOlZ8ep37Ms5jjlo4fG5TKMpikElvUAiwiAqU1T3PAE$Naqn23TeuLtg326w3dtiPLjucezPgChZpMZQueGzaFs	MARIE-LAURE	N'GUESSAN	Abidjan	Abatta	0768498384	2025-01-02 23:03:50.745	2025-07-16 09:06:29.746
+85716038-b2f4-4d60-8636-177b9209a48a	\N	$argon2id$v=19$m=65536,t=2,p=1$irvjk9rVAdWSKyq0TKatRn7JUELm4EhDbLVG0vimFTI$ubKsoKUMPUQDxa2L7EFC+FoARUQRxonZhGosQMTuPow	Mohamed 	Traore	Abidjan	Gonzaque 	0709437905	2025-07-16 19:23:18.547	2025-07-16 19:23:18.547
+930db93b-e5f7-4141-905c-5181e5581634	\N	$argon2id$v=19$m=65536,t=2,p=1$LbsafKDXjgtN/WO5PS4WogkVlzg2Bt5z1GEjQl05DFA$T3VoiiYCN5ORc3jj+Nytt8CKn6FzDxBqw2yWflyck5s	Karisse 	Dione	Abidjan	Yopougon 	0708848183	2025-07-18 16:43:05.846	2025-07-18 16:43:05.846
+d0e34f06-22e4-447d-8f96-1938548841ab	\N	$argon2id$v=19$m=65536,t=2,p=1$sSvu3s9Z5QJsTg6f8eQCBhKczUPzNcpvv0o0OdHKNCU$yIPwQ96/p0TyvrDAGxR6CkQlrqgYKfcv6zYxgCAmUxs	William 	Bini	Abidjan	Cocody Angré 	0757205031	2025-07-19 07:44:28.079	2025-07-19 07:44:28.079
+a245f361-7989-4f61-b95a-4df88feb646a	\N	$argon2id$v=19$m=65536,t=2,p=1$o2s0o/VvvjQvH9vd9wsOiyvmhAqDAxLMeOj0zMqll9o$5CNBWFy1PQABm7IwEWl9QKuygHgqN3HlLIqN1w+RHCw	Grâce manuella cyprienne 	Koffi 	Abidjan	Cocody àkouedo 	0170939176	2025-07-21 01:13:38.558	2025-07-21 01:13:38.558
+3b1701ca-4a2c-42ac-9b01-aa77c90d9e21	\N	$argon2id$v=19$m=65536,t=2,p=1$EWnnJ77ph720SjYJxM0z/GPvCK1k0N55HBQ5K9pPOA8$OGmViLh9l4LbUxYcVCeIZuDGyloQJ4dHjbAMA5lDw88	Gnahoua 	Jonathan 	Abidjan	Logoua 	0505101289	2025-07-21 15:17:11.576	2025-07-21 15:17:11.576
+96397bca-7255-4d10-9ef8-279b7982dac5	\N	$argon2id$v=19$m=65536,t=2,p=1$Kijj22Qyi8Y1KrkfHw97lfYR05nl9nTF0tzbdKDRODg$3q3ebzslY8S0AyeUsscE6UQaIp5uFm8aClvCCH0Utwk	Volaille 	Krika	Abidjan	Bingerville 	0702106201	2025-07-21 18:15:36.444	2025-07-21 18:15:36.444
+989285bf-9d97-4176-949f-a886089dd5ca	\N	$argon2id$v=19$m=65536,t=2,p=1$GbMYw5Tyfu97xxUh+VUDokbRp98v2JCeKYvesMfk6Rg$6dkMotZeXScKH8aPgPM/y1IDpKdD659rMFt62hg4ULE	Élie Qrys Angel	Fiéni	Abidjan	Yopougon cnps	0769620807	2025-07-22 07:38:55.304	2025-07-22 07:38:55.304
+45fe430f-f83c-4edc-8a33-f3da788afa41	\N	$argon2id$v=19$m=65536,t=2,p=1$2tg8vJ+GJuZzAWR7SZ+EbUm8czxvXY/D4/he7ohUyxc$qgZ8//YV238SiBKIgXnqnYezJpRLDpwXN8EwbYmWcLA	Magloire	KARIDIOULA	Abidjan	Marcory	0708453409	2025-07-22 12:01:01.897	2025-07-22 12:01:01.897
+ca4ef812-85d5-43bc-b925-94fe9ad8b4f6	\N	$argon2id$v=19$m=65536,t=2,p=1$fDyjWUO2jqYuQxz7za8hXHmIyu+vvD+0lxT/NFPeCVI$Q44Ho4FZippTzoSBfXl/3025HRtGMqf5eMXpyZCJboE	Mobio pierre marie-aboubacar 	Seity	Abidjan	Gonzague ville 	0554198910	2025-07-25 07:23:14.611	2025-07-25 07:23:14.611
+b6c3a134-8d12-48ef-9158-cd59a165e752	\N	$argon2id$v=19$m=65536,t=2,p=1$U/4o6tsoZ8iN4ui3faMLKkzFUcX2Gx0H8btqBNVZW7c$R7/BcZETTt1JgUTwn/t2lSy6CSJoT2Un6bxrN3jnrNE	Kouakou Lazare 	Kouassi 	Abidjan	Marcory	0101222342	2025-07-29 11:30:35.826	2025-07-29 11:30:35.826
+e6fbe8fe-a2d7-41f1-8324-1963fe73df3b	\N	$argon2id$v=19$m=65536,t=2,p=1$PU25gCUvFZUxZ/+Ccr6dAVVpYMEIw+nuzmC1xF9wT9Y$tp3ck/hOeg3a5WtmUEs7FTcb04ihAfb/GmSrgSF3CF4	Ephrem	N'cho	Abidjan	Williamsville 	0554384018	2025-07-30 14:25:10.803	2025-07-30 14:25:10.803
+926fbb9a-a563-49ac-90fd-6246b3026d9c	\N	$argon2id$v=19$m=65536,t=2,p=1$ITpyh/cTZomtOW9amEtwfUjpB2bG5ISaeLnAzx1p1Vs$tVan+9cf/YPMVCcgutOo+4G8V4bexBAPwy7qccrMjZ8	Yao Franck-Didier	KOUAMÉ	Abidjan	Abatta	0749681531	2025-07-31 14:32:32.937	2025-07-31 14:32:32.937
+a59f8077-386c-4fa9-bb37-79bbc5e58175	\N	$argon2id$v=19$m=65536,t=2,p=1$CgcHlXGz3DbqXwcHZgHhoX7att5mrwn/HrxtWQ7e+5I$sO1yDr2lM91mxXmOuCir3Yt4qNs4W+eKjpbwhzZM5xI	Ydriss 	Cool	Abidjan	Bingerville 	0707824484	2025-08-02 15:12:29.996	2025-08-02 15:12:29.996
+\.
+
+
+--
+-- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
+9ff7938e-eba7-47b3-a753-381ecbbd483b	a4d139bc466b6382f87132d59751853a9a2f8d70c8ff5cca6a8cd71a37fc7498	2024-12-30 12:40:04.928943+00	20241230124004_	\N	\N	2024-12-30 12:40:04.850107+00	1
+9c40428a-6c08-41da-9458-4d104f7363fc	e24bbbc9fb28b9f119a8bf13a214bba3578c01f40c5458c8410723fba2b9a8bf	\N	20241219102852_	A migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\n\nMigration name: 20241219102852_\n\nDatabase error code: 42710\n\nDatabase error:\nERROR: type "area_code" already exists\n\nDbError { severity: "ERROR", parsed_severity: Some(Error), code: SqlState(E42710), message: "type \\"area_code\\" already exists", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("typecmds.c"), line: Some(1167), routine: Some("DefineEnum") }\n\n   0: sql_schema_connector::apply_migration::apply_script\n           with migration_name="20241219102852_"\n             at schema-engine/connectors/sql-schema-connector/src/apply_migration.rs:106\n   1: schema_core::commands::apply_migrations::Applying migration\n           with migration_name="20241219102852_"\n             at schema-engine/core/src/commands/apply_migrations.rs:91\n   2: schema_core::state::ApplyMigrations\n             at schema-engine/core/src/state.rs:226	\N	2025-02-18 16:37:35.219307+00	0
+\.
+
+
+--
+-- Name: Admin Admin_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Admin"
+    ADD CONSTRAINT "Admin_pkey" PRIMARY KEY ("adminId");
+
+
+--
+-- Name: Agent Agent_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Agent"
+    ADD CONSTRAINT "Agent_pkey" PRIMARY KEY ("agentId");
+
+
+--
+-- Name: GiftCard GiftCard_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GiftCard"
+    ADD CONSTRAINT "GiftCard_pkey" PRIMARY KEY ("giftCardId");
+
+
+--
+-- Name: Market Market_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Market"
+    ADD CONSTRAINT "Market_pkey" PRIMARY KEY ("marketId");
+
+
+--
+-- Name: OrderProducts OrderProducts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."OrderProducts"
+    ADD CONSTRAINT "OrderProducts_pkey" PRIMARY KEY ("orderProductId");
+
+
+--
+-- Name: Order Order_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Order"
+    ADD CONSTRAINT "Order_pkey" PRIMARY KEY ("orderId");
+
+
+--
+-- Name: Product Product_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Product"
+    ADD CONSTRAINT "Product_pkey" PRIMARY KEY ("productId");
+
+
+--
+-- Name: PromoCode PromoCode_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PromoCode"
+    ADD CONSTRAINT "PromoCode_pkey" PRIMARY KEY ("promoCodeId");
+
+
+--
+-- Name: Seller Seller_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Seller"
+    ADD CONSTRAINT "Seller_pkey" PRIMARY KEY ("sellerId");
+
+
+--
+-- Name: Shipper Shipper_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Shipper"
+    ADD CONSTRAINT "Shipper_pkey" PRIMARY KEY ("shipperId");
+
+
+--
+-- Name: User User_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."User"
+    ADD CONSTRAINT "User_pkey" PRIMARY KEY ("userId");
+
+
+--
+-- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public._prisma_migrations
+    ADD CONSTRAINT _prisma_migrations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: Admin_email_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Admin_email_key" ON public."Admin" USING btree (email);
+
+
+--
+-- Name: Agent_email_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Agent_email_key" ON public."Agent" USING btree (email);
+
+
+--
+-- Name: Agent_phone_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Agent_phone_key" ON public."Agent" USING btree (phone);
+
+
+--
+-- Name: GiftCard_userId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "GiftCard_userId_key" ON public."GiftCard" USING btree ("userId");
+
+
+--
+-- Name: Market_name_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Market_name_key" ON public."Market" USING btree (name);
+
+
+--
+-- Name: PromoCode_code_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "PromoCode_code_key" ON public."PromoCode" USING btree (code);
+
+
+--
+-- Name: Shipper_email_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Shipper_email_key" ON public."Shipper" USING btree (email);
+
+
+--
+-- Name: Shipper_phone_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Shipper_phone_key" ON public."Shipper" USING btree (phone);
+
+
+--
+-- Name: User_email_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "User_email_key" ON public."User" USING btree (email);
+
+
+--
+-- Name: User_phone_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "User_phone_key" ON public."User" USING btree (phone);
+
+
+--
+-- Name: uc_admin; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uc_admin ON public."Admin" USING btree (email, "areaCode");
+
+
+--
+-- Name: uc_agent; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uc_agent ON public."Agent" USING btree (email, "marketId");
+
+
+--
+-- Name: uc_tableinmarket; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uc_tableinmarket ON public."Seller" USING btree ("marketId", "tableNumber");
+
+
+--
+-- Name: Agent Agent_marketId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Agent"
+    ADD CONSTRAINT "Agent_marketId_fkey" FOREIGN KEY ("marketId") REFERENCES public."Market"("marketId") ON DELETE CASCADE;
+
+
+--
+-- Name: GiftCard GiftCard_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GiftCard"
+    ADD CONSTRAINT "GiftCard_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"("userId") ON DELETE CASCADE;
+
+
+--
+-- Name: OrderProducts OrderProducts_orderId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."OrderProducts"
+    ADD CONSTRAINT "OrderProducts_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES public."Order"("orderId") ON DELETE CASCADE;
+
+
+--
+-- Name: OrderProducts OrderProducts_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."OrderProducts"
+    ADD CONSTRAINT "OrderProducts_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"("productId") ON DELETE CASCADE;
+
+
+--
+-- Name: Order Order_agentId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Order"
+    ADD CONSTRAINT "Order_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES public."Agent"("agentId") ON DELETE CASCADE;
+
+
+--
+-- Name: Order Order_promoCodeId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Order"
+    ADD CONSTRAINT "Order_promoCodeId_fkey" FOREIGN KEY ("promoCodeId") REFERENCES public."PromoCode"("promoCodeId") ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: Order Order_shipperId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Order"
+    ADD CONSTRAINT "Order_shipperId_fkey" FOREIGN KEY ("shipperId") REFERENCES public."Shipper"("shipperId") ON DELETE CASCADE;
+
+
+--
+-- Name: Order Order_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Order"
+    ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"("userId") ON DELETE CASCADE;
+
+
+--
+-- Name: Product Product_sellerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Product"
+    ADD CONSTRAINT "Product_sellerId_fkey" FOREIGN KEY ("sellerId") REFERENCES public."Seller"("sellerId") ON DELETE CASCADE;
+
+
+--
+-- Name: Seller Seller_marketId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Seller"
+    ADD CONSTRAINT "Seller_marketId_fkey" FOREIGN KEY ("marketId") REFERENCES public."Market"("marketId") ON DELETE CASCADE;
+
+
+--
+-- Name: Shipper Shipper_marketId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Shipper"
+    ADD CONSTRAINT "Shipper_marketId_fkey" FOREIGN KEY ("marketId") REFERENCES public."Market"("marketId") ON DELETE CASCADE;
+
+
+--
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+
+
+--
+-- PostgreSQL database dump complete
+--
+

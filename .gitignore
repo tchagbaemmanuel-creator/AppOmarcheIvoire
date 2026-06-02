@@ -1,0 +1,21 @@
+# Dépendances et secrets
+node_modules/
+.env
+.env.*
+
+# Builds
+dist/
+.expo/
+web-build/
+
+# Uploads locaux API
+api/uploads/
+uploads/
+
+# Sous-repo git mobile (intégré au monorepo)
+mobile/.git
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

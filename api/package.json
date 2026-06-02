@@ -1,0 +1,40 @@
+{
+	"name": "@omarche/api",
+	"version": "1.0.50",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"dev": "bun run --watch src/index.ts",
+		"start": "bun run src/index.ts",
+		"db:generate": "prisma generate",
+		"db:apply-password-reset-table": "bunx prisma db execute --file prisma/migrations/20260412120000_password_reset_request/migration.sql --schema prisma/schema.prisma",
+		"db:mark-password-reset-migration": "bunx prisma migrate resolve --applied 20260412120000_password_reset_request",
+		"db:fix-password-reset": "bun run db:apply-password-reset-table && bun run db:mark-password-reset-migration"
+	},
+	"prisma": {
+		"seed": "bun run prisma/seed.ts"
+	},
+	"dependencies": {
+		"@hono/swagger-ui": "^0.5.0",
+		"@hono/zod-openapi": "^0.18.3",
+		"@hono/zod-validator": "^0.2.2",
+		"@prisma/client": "^6.19.0",
+		"@react-email/components": "0.0.33",
+		"@types/jsonwebtoken": "^9.0.6",
+		"cron": "^3.1.7",
+		"hono": "^4.6.1",
+		"ioredis": "^5.4.1",
+		"jsonwebtoken": "^9.0.2",
+		"react": "19.0.0",
+		"react-dom": "19.0.0",
+		"resend": "^4.1.2",
+		"winston": "^3.14.2",
+		"z": "^1.0.9"
+	},
+	"devDependencies": {
+		"@types/react": "^19.0.12",
+		"bun-types": "latest",
+		"prisma": "^6.19.0",
+		"react-email": "^3.0.7"
+	},
+	"module": "src/index.js"
+}
