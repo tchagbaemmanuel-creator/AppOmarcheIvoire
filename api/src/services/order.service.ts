@@ -264,23 +264,37 @@ export async function getOrderDetailsById(orderId: string): Promise<
 	}
 }
 
+type OrderWithRelations = Awaited<ReturnType<typeof selectAllOrders>>[number];
+
+function mapOrderToListDTO(order: OrderWithRelations) {
+	const lineItems = order.orderProducts
+		.filter((op) => op.products?.seller)
+		.map((op) => ({
+			product: op.products,
+			quantity: op.quantity,
+			sellerName: op.products.seller?.firstName ?? "—",
+			sellerTableNo: op.products.seller?.tableNumber ?? 0,
+		}));
+
+	const marketFromProduct =
+		order.orderProducts[0]?.products?.seller?.market ?? null;
+	const marketFromAgent = order.agent?.market ?? null;
+	const market = marketFromProduct ?? marketFromAgent;
+
+	return {
+		order,
+		orderProducts: lineItems,
+		marketName: market?.name ?? "—",
+		client: order.users,
+		market,
+		shipper: order.shipper,
+	};
+}
+
 export async function getAllOrders(areaCode?: area_code): Promise<OrderDTO[]> {
 	try {
-		const orders = await selectAllOrders();
-		const ordersDTO = orders.map((order) => ({
-			order,
-			orderProducts: order.orderProducts.map((op) => ({
-				product: op.products,
-				quantity: op.quantity,
-				sellerName: op.products.seller.firstName,
-				sellerTableNo: op.products.seller.tableNumber,
-			})),
-			marketName: order.orderProducts[0]?.products.seller.market.name || "",
-			client: order.users,
-			market: order.orderProducts[0]?.products.seller.market,
-			shipper: order.shipper,
-		}));
-		return ordersDTO;
+		const orders = await selectAllOrders(areaCode);
+		return orders.map(mapOrderToListDTO);
 	} catch (error) {
 		throw new AppError("Erreur lors de la récupération des commandes", 500, error as Error);
 	}

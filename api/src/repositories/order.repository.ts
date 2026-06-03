@@ -200,22 +200,34 @@ export async function selectOrders() {
 
 export async function selectAllOrders(areaCode?: area_code) {
     const orders = await prisma.order.findMany({
-        where: {
-            orderProducts: {
-                some: {
-                    products: {
-                        seller: {
-                            market: {
-                                areaCode: areaCode
-                            }
-                        }
-                    }
-                }
-            }
-        },
+        where: areaCode
+            ? {
+                  OR: [
+                      {
+                          orderProducts: {
+                              some: {
+                                  products: {
+                                      seller: {
+                                          market: { areaCode },
+                                      },
+                                  },
+                              },
+                          },
+                      },
+                      {
+                          agent: {
+                              market: { areaCode },
+                          },
+                      },
+                  ],
+              }
+            : undefined,
         include: {
             users: true,
             shipper: true,
+            agent: {
+                include: { market: true },
+            },
             orderProducts: {
                 include: {
                     products: {
@@ -230,6 +242,7 @@ export async function selectAllOrders(areaCode?: area_code) {
                 },
             },
         },
+        orderBy: { createdAt: "desc" },
     });
     return orders;
 }

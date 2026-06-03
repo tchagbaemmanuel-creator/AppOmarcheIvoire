@@ -10,6 +10,7 @@ async function seedDb() {
 		await seedUsers();
 		await seedShippers();
 		await seedAdmin();
+		await seedOrders();
 		await seedGiftCards();
 		console.log("🌱 Database seeding completed successfully");
 	} catch (error) {
@@ -32,9 +33,12 @@ async function seedAdmin()  {
 	})
 
 	for (const area of areas) {
-		await prisma.admin.create({
-			data: {
-				email: `admin@${area.toLowerCase()}.com`,
+		const email = `admin@${area.toLowerCase()}.com`;
+		await prisma.admin.upsert({
+			where: { email },
+			update: {},
+			create: {
+				email,
 				password: Bun.password.hashSync(`OMarche@${area}2024`),
 				areaCode: area,
 			},
@@ -216,6 +220,75 @@ async function seedShippers() {
 		],
 	});
 	console.log("✅ Shippers seeded successfully");
+}
+
+async function seedOrders() {
+	const existing = await prisma.order.count();
+	if (existing > 0) {
+		console.log("✅ Orders already present, skip order seed");
+		return;
+	}
+
+	const user = await prisma.user.findFirst({
+		where: { email: "user@omarche.com" },
+	});
+	const product = await prisma.product.findFirst({
+		where: { name: "Tomates" },
+	});
+	const pomme = await prisma.product.findFirst({
+		where: { name: "Pommes" },
+	});
+	const agent = await prisma.agent.findFirst();
+
+	if (!user || !product) {
+		throw new Error("❌ User or product missing for order seed");
+	}
+
+	const order1 = await prisma.order.create({
+		data: {
+			userId: user.userId,
+			locationX: 5.3424059,
+			locationY: -3.9751328,
+			address: "Cocody Anono, Rue des bananiers",
+			deliveryTime: "14:00 - 16:00",
+			paymentMethod: "Espèces",
+			status: "PROCESSING",
+			agentId: agent?.agentId ?? null,
+		},
+	});
+
+	await prisma.orderProducts.create({
+		data: {
+			orderId: order1.orderId,
+			productId: product.productId,
+			quantity: 2,
+		},
+	});
+
+	if (pomme) {
+		const order2 = await prisma.order.create({
+			data: {
+				userId: user.userId,
+				locationX: 5.3640433,
+				locationY: -3.9699977,
+				address: "Palmeraie, Immeuble B",
+				deliveryTime: "10:00 - 12:00",
+				paymentMethod: "Mobile Money",
+				status: "DELIVERED",
+				agentId: agent?.agentId ?? null,
+			},
+		});
+
+		await prisma.orderProducts.create({
+			data: {
+				orderId: order2.orderId,
+				productId: pomme.productId,
+				quantity: 1,
+			},
+		});
+	}
+
+	console.log("✅ Orders seeded successfully");
 }
 
 async function seedGiftCards() {

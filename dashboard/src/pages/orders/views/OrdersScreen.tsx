@@ -13,11 +13,11 @@ import { Button } from "@/components/ui/button";
 import { PageShell, PageLoading, PageError } from "@/components/PageShell";
 import { StatusBadge, orderStatusVariant } from "@/components/StatusBadge";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 25;
 
 const OrdersScreen = (): JSX.Element => {
     const user = useSelector(selectCurrentUser)!;
-    const { data: orders, isLoading, error } = useGetAllOrdersQuery(user.areaCode ?? undefined);
+    const { data: orders, isLoading, error } = useGetAllOrdersQuery();
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const navigate = useNavigate();
@@ -59,7 +59,10 @@ const OrdersScreen = (): JSX.Element => {
         <HeaderContainer >
             <div>
                 <HeaderTitle>Commandes</HeaderTitle>
-                <HeaderSubtitle>Liste des commandes disponibles sur la plateforme et informations</HeaderSubtitle>
+                <HeaderSubtitle>
+                    Toutes les commandes de la plateforme
+                    {orders ? ` — ${orders.length} au total` : ""}
+                </HeaderSubtitle>
             </div>
             <div className="flex flex-row gap-4 justify-center items-center">
                 <Input
