@@ -1,5 +1,5 @@
 import * as React from "react";
-import resend from "./resend";
+import resendClient from "./resend";
 import { area_code } from "@prisma/client";
 
 const COMPANY_EMAILS = ["omarchesarl@gmail.com"];
@@ -26,7 +26,15 @@ export async function sendMail(
   recipients: string[],
   subject?: string
 ) {
-  const { data, error } = await resend.emails.send({
+  if (!resendClient) {
+    console.warn(
+      "[mail] RESEND_API_KEY manquant — e-mail non envoyé:",
+      subject || "notification"
+    );
+    return null;
+  }
+
+  const { data, error } = await resendClient.emails.send({
     from: "O'Marché <info@omarcheivoire.ci>",
     to: recipients,
     subject: subject || "O'Marché - Notification",

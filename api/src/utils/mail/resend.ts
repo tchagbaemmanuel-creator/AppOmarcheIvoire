@@ -1,6 +1,9 @@
 import { ENV } from "@/config/constants";
 import { Resend } from "resend";
 
-const resend = new Resend(ENV.RESEND_API_KEY);
+/** Client Resend uniquement si RESEND_API_KEY est définie (évite le crash au démarrage sur Render). */
+export const resendClient = ENV.RESEND_API_KEY
+	? new Resend(ENV.RESEND_API_KEY)
+	: null;
 
-export default resend;
+export default resendClient;
