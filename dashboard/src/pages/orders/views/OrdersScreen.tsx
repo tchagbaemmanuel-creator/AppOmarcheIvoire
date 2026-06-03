@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { PageShell, PageLoading, PageError } from "@/components/PageShell";
 import { StatusBadge, orderStatusVariant } from "@/components/StatusBadge";
+import { getAreaLabel } from "@/pages/markets/views/MarketsScreen";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -60,7 +61,9 @@ const OrdersScreen = (): JSX.Element => {
             <div>
                 <HeaderTitle>Commandes</HeaderTitle>
                 <HeaderSubtitle>
-                    Toutes les commandes de la plateforme
+                    {user.areaCode
+                        ? `Commandes de la zone ${getAreaLabel(user.areaCode)}`
+                        : "Toutes les commandes de la plateforme"}
                     {orders ? ` — ${orders.length} au total` : ""}
                 </HeaderSubtitle>
             </div>

@@ -85,9 +85,12 @@ orderHandler.post("/", zValidator("json", PostOrderDTO), async (c) => {
 orderHandler.get("/", zValidator("query", AreaCodeQueryValidator), async (c) => {
 	try {
 		const query = c.req.valid("query");
-		// Admin SGI (JWT avec areaCode défini, y compris null) : toutes les commandes
-		const isAdminSession = c.get("areaCode") !== undefined;
-		const areaFilter = isAdminSession ? undefined : (query.a ?? undefined);
+		// Admin global (areaCode null) : toutes les commandes ; admin zone : filtre JWT
+		const jwtArea = c.get("areaCode");
+		const isAdminSession = jwtArea !== undefined;
+		const areaFilter = isAdminSession
+			? (jwtArea ?? undefined)
+			: (query.a ?? undefined);
 		const orders = await getAllOrders(areaFilter);
 		return c.json(orders);
 	} catch (error) {
