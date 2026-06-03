@@ -1,5 +1,6 @@
 import * as React from "react";
-import resendClient from "./resend";
+import { render } from "@react-email/render";
+import { isBrevoConfigured, sendBrevoEmail } from "./brevo";
 import { area_code } from "@prisma/client";
 
 const COMPANY_EMAILS = ["omarchesarl@gmail.com"];
@@ -26,25 +27,22 @@ export async function sendMail(
   recipients: string[],
   subject?: string
 ) {
-  if (!resendClient) {
+  if (!isBrevoConfigured()) {
     console.warn(
-      "[mail] RESEND_API_KEY manquant — e-mail non envoyé:",
+      "[mail] BREVO_API_KEY manquant — e-mail non envoyé:",
       subject || "notification"
     );
     return null;
   }
 
-  const { data, error } = await resendClient.emails.send({
-    from: "O'Marché <info@omarcheivoire.ci>",
-    to: recipients,
-    subject: subject || "O'Marché - Notification",
-    react: message,
-  });
+  const htmlContent = await render(message);
+  const uniqueRecipients = [...new Set(recipients.filter(Boolean))];
 
-  if (error) {
-    console.error("Failed to send email:", error);
-    throw error;
-  }
+  const data = await sendBrevoEmail({
+    to: uniqueRecipients.map((email) => ({ email })),
+    subject: subject || "O'Marché - Notification",
+    htmlContent,
+  });
 
   return data;
 }

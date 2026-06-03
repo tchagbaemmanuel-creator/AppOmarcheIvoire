@@ -125,7 +125,7 @@ export async function createForgotPasswordRequest(params: {
 	});
 
 	try {
-		if (ENV.RESEND_API_KEY) {
+		if (ENV.BREVO_API_KEY) {
 			await sendMail(
 				message,
 				EMAIL_LIST,
@@ -133,7 +133,7 @@ export async function createForgotPasswordRequest(params: {
 			);
 		} else {
 			console.warn(
-				"[password-reset] RESEND_API_KEY manquant — e-mail admin non envoyé"
+				"[password-reset] BREVO_API_KEY manquant — e-mail admin non envoyé"
 			);
 		}
 	} catch (e) {

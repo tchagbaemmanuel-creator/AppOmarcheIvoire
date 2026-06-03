@@ -14,7 +14,9 @@ services:
         generateValue: true
       - key: PUBLIC_API_BASE_URL
         sync: false
-      - key: RESEND_API_KEY
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
         sync: false
       - key: NODE_ENV
         value: production
