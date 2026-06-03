@@ -1,6 +1,18 @@
 {
+	"cli": {
+		"version": ">= 12.0.0",
+		"appVersionSource": "remote"
+	},
 	"build": {
+		"development": {
+			"developmentClient": true,
+			"distribution": "internal",
+			"env": {
+				"EXPO_PUBLIC_API_URL": "https://appomarcheivoire.onrender.com"
+			}
+		},
 		"preview": {
+			"distribution": "internal",
 			"android": {
 				"buildType": "apk"
 			},
@@ -8,17 +20,14 @@
 				"EXPO_PUBLIC_API_URL": "https://appomarcheivoire.onrender.com"
 			}
 		},
-		"preview2": {
+		"production": {
+			"autoIncrement": true,
 			"android": {
-				"gradleCommand": ":app:assembleRelease"
+				"buildType": "app-bundle"
+			},
+			"env": {
+				"EXPO_PUBLIC_API_URL": "https://appomarcheivoire.onrender.com"
 			}
-		},
-		"preview3": {
-			"developmentClient": true
-		},
-		"preview4": {
-			"distribution": "internal"
-		},
-		"production": {}
+		}
 	}
 }

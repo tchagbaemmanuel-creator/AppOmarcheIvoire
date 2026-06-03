@@ -2,8 +2,11 @@ import { ButtonHTMLAttributes } from 'react';
 import { LinkProps, NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '@/redux/slices/authSlice';
-import { FaBasketShopping } from 'react-icons/fa6';
+import { FaArrowUpRightFromSquare } from 'react-icons/fa6';
 import clsx from 'clsx';
+import { PUBLIC_WEBSITE_URL } from '@/config/site';
+
+const LOGO_SRC = '/logo-omarche-ivoire.png';
 
 const NavigationBar = ({ children }: { children: React.ReactNode }): JSX.Element => {
     return (
@@ -19,12 +22,14 @@ export const NavigationLogo = (): JSX.Element => {
     return (
         <NavLink
             to="/"
-            className="group mr-4 flex shrink-0 items-center gap-3 rounded-lg pr-3 transition-colors hover:bg-muted/60"
+            className="group mr-2 flex shrink-0 items-center gap-2 rounded-lg pr-2 transition-colors hover:bg-muted/60 sm:mr-4 sm:gap-3 sm:pr-3"
         >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-green shadow-sm">
-                <FaBasketShopping className="h-4 w-4 text-white" aria-hidden />
-            </div>
-            <div className="hidden flex-col sm:flex">
+            <img
+                src={LOGO_SRC}
+                alt="O'Marché Ivoire"
+                className="h-9 w-auto max-w-[120px] object-contain sm:h-10 sm:max-w-[140px]"
+            />
+            <div className="hidden flex-col lg:flex">
                 <span className="text-sm font-semibold leading-tight text-foreground">
                     O&apos;Marché Ivoire
                 </span>
@@ -33,6 +38,21 @@ export const NavigationLogo = (): JSX.Element => {
                 </span>
             </div>
         </NavLink>
+    );
+};
+
+export const NavigationWebsiteLink = (): JSX.Element => {
+    return (
+        <a
+            href={PUBLIC_WEBSITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mr-1 flex items-center gap-2 rounded-lg border border-brand-green/25 bg-brand-green-light/50 px-2.5 py-2 text-sm font-medium text-brand-green-dark transition-colors hover:bg-brand-green-light sm:px-3"
+            title="Ouvrir le site vitrine O'Marché Ivoire"
+        >
+            <FaArrowUpRightFromSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>Site web</span>
+        </a>
     );
 };
 

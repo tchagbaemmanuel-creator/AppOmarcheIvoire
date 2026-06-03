@@ -1,0 +1,8 @@
+# Réduit l’archive EAS (évite d’envoyer tout le monorepo)
+../api
+../dashboard
+../database.sql
+../.git
+../agent-transcripts
+../terminals
+node_modules/.cache

@@ -18,6 +18,8 @@ import {
 } from "react-icons/fa6";
 import { toast } from "sonner";
 import Footer from "./components/Footer";
+import SectionHero from "./components/SectionHero";
+import { NavigationWebsiteLink } from "./components/Navigation";
 import { useLogoutMutation } from "./redux/api/auth";
 
 function App() {
@@ -69,12 +71,14 @@ function App() {
             <NavigationLink>Utilisateurs</NavigationLink>
           </NavigationLinkContainer>
         </div>
+        <NavigationWebsiteLink />
         <NavigationButton onClick={handleLogout}>
           <FaDoorOpen />
           <span className="hidden sm:inline">Déconnexion</span>
         </NavigationButton>
       </NavigationBar>
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-6 sm:px-6">
+        <SectionHero />
         <Outlet />
       </div>
       <Footer />
