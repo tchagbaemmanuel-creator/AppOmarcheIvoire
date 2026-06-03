@@ -9,6 +9,8 @@
 ../terminals
 **/*.apk
 **/*.aab
+build-artifact.tar.gz
+build-extract/
 node_modules/.cache
 .expo
 android/app/build

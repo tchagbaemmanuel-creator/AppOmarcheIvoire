@@ -11,6 +11,7 @@ const rawBaseQuery = fetchBaseQuery({
         if (token) {
             headers.set('authorization', `Bearer ${token}`);
         }
+        headers.set('Accept', 'application/json');
         if (ENV.API_URL.includes('ngrok')) {
             headers.set('ngrok-skip-browser-warning', 'true');
         }
@@ -25,8 +26,11 @@ export const baseQuery: BaseQueryFn<
     FetchBaseQueryError
 > = async (args, api, extraOptions) => {
     let result = await rawBaseQuery(args, api, extraOptions);
-    if (result.error?.status === 'FETCH_ERROR') {
-        await new Promise((r) => setTimeout(r, 2000));
+    const retryable =
+        result.error?.status === 'FETCH_ERROR' ||
+        result.error?.status === 'PARSING_ERROR';
+    if (retryable) {
+        await new Promise((r) => setTimeout(r, 5000));
         result = await rawBaseQuery(args, api, extraOptions);
     }
     return result;
