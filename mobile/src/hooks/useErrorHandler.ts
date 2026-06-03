@@ -54,7 +54,7 @@ export const useErrorHandler = () => {
             errorMessage =
                 error?.status === "PARSING_ERROR"
                     ? "Réponse serveur invalide (souvent ngrok ou mauvaise URL API)."
-                    : "Impossible de joindre le serveur. Vérifie la connexion, ngrok et que l’API tourne.";
+                    : "Le serveur met du temps à répondre (Render en veille). Attendez 30 s et réessayez.";
             errorType = "warning";
         }
         // Handle string error messages

@@ -13,13 +13,15 @@ import { useNavigation, useRoute } from '@react-navigation/native'
 import { AuthStackNavigation, LoginScreenRouteProp } from '../routers/AuthStackRouter'
 import { RootStackNavigation } from '@/routers/BaseRouter'
 import { useErrorHandler } from '@/hooks/useErrorHandler'
+import { normalizePhone } from '@/utils/phone'
 
 export default function LoginForm() {
     const authNavigation = useNavigation<AuthStackNavigation>()
     const homeNavigation = useNavigation<RootStackNavigation>()
-    const [loginClient] = useLoginClientMutation()
-    const [loginAgent] = useLoginAgentMutation()
-    const [loginShipper] = useLoginShipperMutation()
+    const [loginClient, { isLoading: clientLoading }] = useLoginClientMutation()
+    const [loginAgent, { isLoading: agentLoading }] = useLoginAgentMutation()
+    const [loginShipper, { isLoading: shipperLoading }] = useLoginShipperMutation()
+    const isLoading = clientLoading || agentLoading || shipperLoading
     const route = useRoute<LoginScreenRouteProp>()
     const role = useSelector((state: RootState) => state.auth.role)
     const handleError = useErrorHandler()
@@ -33,7 +35,7 @@ export default function LoginForm() {
                     initialValues={{ phone: route.params ? route.params.phone : '', password: '' }}
                     onSubmit={async (values) => {
                         if (!values.phone || !values.password) return;
-                        const phone = values.phone.replace(/\D/g, "");
+                        const phone = normalizePhone(values.phone);
                         if (!phone) return;
                         try {
                             let result;
@@ -52,8 +54,15 @@ export default function LoginForm() {
                         }
                     }}
                     validationSchema={LoginSchema}
+                    validateOnChange
+                    validateOnBlur
                 >
-                    {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isValid }) => (
+                    {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => {
+                        const canSubmit =
+                            normalizePhone(values.phone).length >= 8 &&
+                            values.password.length > 0 &&
+                            !isLoading
+                        return (
                         <>
                             <FormInputContainer>
                                 <MaterialCommunityIcons name="phone" size={20} color="rgba(0,0,0,0.2)" />
@@ -86,8 +95,10 @@ export default function LoginForm() {
                             </Pressable>
 
                             <View style={styles.buttonGroup}>
-                                <ButtonContainer onPress={handleSubmit} disabled={!isValid}>
-                                    <ButtonText color="white">Se connecter</ButtonText>
+                                <ButtonContainer onPress={handleSubmit} disabled={!canSubmit}>
+                                    <ButtonText color="white" loading={isLoading}>
+                                        {isLoading ? '' : 'Se connecter'}
+                                    </ButtonText>
                                 </ButtonContainer>
                                 {role === 'Client' && (
                                     <ButtonContainer style={{ backgroundColor: Theme.colors.orange }} onPress={() => authNavigation.navigate('Register')}>
@@ -96,7 +107,8 @@ export default function LoginForm() {
                                 )}
                             </View>
                         </>
-                    )}
+                        )
+                    }}
                 </Formik>
             </View>
 

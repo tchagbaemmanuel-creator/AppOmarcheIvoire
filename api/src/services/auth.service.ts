@@ -12,6 +12,7 @@ import {
 import jwt from "jsonwebtoken";
 import { Admin, Agent, area_code, Shipper, User } from "@prisma/client";
 import AppError from "@/utils/AppError";
+import { normalizePhone } from "@/utils/phone";
 import { createForgotPasswordRequest } from "./password-reset.service";
 
 export type LoginDTO = {
@@ -24,7 +25,8 @@ export async function postLoginUser(params: LoginDTO): Promise<{
 	token: string;
 }> {
 	try {
-		let user = await selectUserByPhone(params.phone);
+		const phone = normalizePhone(params.phone);
+		let user = await selectUserByPhone(phone);
 		if (!user) {
 			throw new AppError("Téléphone/mot de passe incorrect", 401, new Error("User not found"));
 		}
@@ -61,9 +63,10 @@ export type RegisterDTO = {
 
 export async function postRegisterUser(params: RegisterDTO): Promise<void> {
 	try {
+		const phone = normalizePhone(params.phone);
 		const password = await Bun.password.hash(params.password);
 		await insertUser({
-			phone: params.phone,
+			phone,
 			password: password,
 			firstName: params.firstName,
 			lastName: params.lastName,
@@ -94,7 +97,7 @@ export async function postRegisterAgent(
 	try {
 		const hashedPassword = await Bun.password.hash(params.password);
 		const agent = await insertAgent({
-			phone: params.phone,
+			phone: normalizePhone(params.phone),
 			password: hashedPassword,
 			firstName: params.firstName,
 			lastName: params.lastName,
@@ -112,7 +115,8 @@ export async function postLoginAgent(params: AgentLoginDTO): Promise<{
 	token: string;
 }> {
 	try {
-		let agent = await selectAgentByPhone(params.phone);
+		const phone = normalizePhone(params.phone);
+		let agent = await selectAgentByPhone(phone);
 		if (!agent) {
 			throw new AppError("Téléphone/mot de passe incorrect", 401, new Error("Agent not found"));
 		}
@@ -158,7 +162,7 @@ export async function postRegisterShipper(
 	try {
 		const hashedPassword = await Bun.password.hash(params.password);
 		const shipper = await insertShipper({
-			phone: params.phone,
+			phone: normalizePhone(params.phone),
 			password: hashedPassword,
 			firstName: params.firstName,
 			lastName: params.lastName,
@@ -176,7 +180,8 @@ export async function postLoginShipper(params: ShipperLoginDTO): Promise<{
 	token: string;
 }> {
 	try {
-		let shipper = await selectShipperByPhone(params.phone);
+		const phone = normalizePhone(params.phone);
+		let shipper = await selectShipperByPhone(phone);
 		if (!shipper) {
 			throw new AppError("Téléphone/mot de passe incorrect", 401, new Error("Shipper not found"));
 		}

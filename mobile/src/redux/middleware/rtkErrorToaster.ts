@@ -19,7 +19,15 @@ const errorToastMiddleware: Middleware =
                         action.payload.status ??
                         data?.code ??
                         data?.statusCode;
-                    if (data?.message && typeof httpStatus === "number") {
+                    if (action.payload.status === "FETCH_ERROR") {
+                        errorMessage =
+                            "Le serveur met du temps à répondre (souvent après une pause). Réessayez dans 30 secondes.";
+                        errorType = "warning";
+                    } else if (action.payload.status === "PARSING_ERROR") {
+                        errorMessage =
+                            "Réponse serveur invalide. Vérifiez que l'application utilise la bonne API.";
+                        errorType = "warning";
+                    } else if (data?.message && typeof httpStatus === "number") {
                         errorMessage = data.message;
                         switch (Math.floor(httpStatus / 100)) {
                             case 4:
@@ -31,7 +39,10 @@ const errorToastMiddleware: Middleware =
                             default:
                                 errorType = "info";
                         }
-                    } 
+                    } else if (data?.message) {
+                        errorMessage = data.message;
+                        errorType = "warning";
+                    }
                     else if (typeof action.payload === "string") {
                         errorMessage = action.payload;
                         errorType = "warning";

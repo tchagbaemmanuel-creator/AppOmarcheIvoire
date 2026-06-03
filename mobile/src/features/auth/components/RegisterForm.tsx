@@ -13,6 +13,7 @@ import RegistrationHeader from './layout/RegistrationHeader'
 import { useRegisterMutation } from '../redux/auth.api'
 import { useDispatch } from 'react-redux'
 import { showToast } from '@/redux/slices/toast.slice'
+import { normalizePhone } from '@/utils/phone'
 
 export default function RegisterForm() {
     return (
@@ -47,6 +48,7 @@ function Form() {
     return <Formik
         initialValues={{ firstName: '', lastName: '', birthDay: '', phone: '', address: '', email: '', password: '', confirmPassword: '' }}
         onSubmit={values => {
+            const phone = normalizePhone(values.phone)
             register({
                 address: values.address,
                 birthDay: values.birthDay,
@@ -54,9 +56,9 @@ function Form() {
                 firstName: values.firstName,
                 lastName: values.lastName,
                 password: values.password,
-                phone: values.phone,
+                phone,
             }).then(() => {
-                navigation.navigate('Login', { phone: values.phone })
+                navigation.navigate('Login', { phone })
                 dispatch(showToast({ message: "Votre compte a été créé avec succès.", type: "success" }))
             })
         }}

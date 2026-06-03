@@ -1,8 +1,15 @@
 # Réduit l’archive EAS (évite d’envoyer tout le monorepo)
 ../api
 ../dashboard
+../shared
 ../database.sql
+../DEPLOY.md
 ../.git
 ../agent-transcripts
 ../terminals
+**/*.apk
+**/*.aab
 node_modules/.cache
+.expo
+android/app/build
+ios/build

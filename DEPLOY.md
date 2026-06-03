@@ -15,7 +15,8 @@
    - `VITE_API_URL` = `https://appomarcheivoire.onrender.com`
 5. **Deploy**
 
-Connexion : `admin@omarche.com` / `OMarche@2024`
+
+
 
 ## Importer les données de production (Neon)
 
@@ -61,7 +62,18 @@ npx eas login          # compte expo.dev (iamcedric)
 npm run build:android:preview
 ```
 
-À la fin du build, EAS affiche un **lien de téléchargement** de l’APK (valable ~30 jours). Partagez ce lien aux testeurs ; ils activent « sources inconnues » puis installent.
+Les liens `expo.dev/artifacts/...` **expirent** (~30 jours). Ne pas les mettre sur le site.
+
+Après un build réussi :
+
+```bash
+cd mobile
+npm run sync:apk-to-site
+```
+
+Cela copie l’APK dans le dépôt site (`omarche-site/downloads/omarche-ivoire.apk`). Le site utilise l’URL permanente `/downloads/omarche-ivoire.apk` (`site-config.js`). Commit + push du repo **Omarcheivoire**, puis Render redéploie.
+
+Les testeurs téléchargent depuis https://omarcheivoire.onrender.com/ ; ils activent « sources inconnues » puis installent.
 
 Suivi du build : [expo.dev/accounts/iamcedric/projects/omarche-ivoire/builds](https://expo.dev/accounts/iamcedric/projects/omarche-ivoire/builds)
 
@@ -96,6 +108,7 @@ Compte **Apple Developer** requis sur expo.dev.
 
 ### Dépannage mobile
 
-- **Erreur réseau / timeout** : attendre 30–60 s (réveil Render), réessayer.
+- **Erreur réseau / timeout** : l’API Render (gratuit) se met en veille ; attendre 30–60 s et réessayer (l’app retente une fois automatiquement).
+- **Connexion client** : saisir le numéro **sans +225** ou avec (ex. `07 XX XX XX XX`), mot de passe du compte. Compte démo seed : `00000001` / `testuser` (si présent en base).
 - **Mauvaise API** : vérifier `.env` → `EXPO_PUBLIC_API_URL=https://appomarcheivoire.onrender.com`, puis refaire un build EAS.
 - **Build EAS** : `npx eas build:list` pour voir l’historique et les liens APK.
