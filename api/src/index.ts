@@ -29,6 +29,14 @@ export type Variables = {
 
 const app = new OpenAPIHono<{Variables: Variables}>();
 
+app.get("/", (c) =>
+	c.json({
+		status: "ok",
+		service: "O'Marché Ivoire API",
+		docs: "/docs",
+		swagger: "/swagger",
+	})
+);
 app.get('/docs', (c) => c.json(openApiDocument));
 app.get('/swagger', swaggerUI({ url: '/docs' }));
 
