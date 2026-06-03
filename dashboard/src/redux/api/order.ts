@@ -115,7 +115,7 @@ export const orderApi = createApi({
     tagTypes: ["Order"],
     endpoints: (builder) => ({
         getAllOrders: builder.query<OrderDTO[], void>({
-            query: () => "orders",
+            query: () => "orders/",
             providesTags: ["Order"],
         }),
 
