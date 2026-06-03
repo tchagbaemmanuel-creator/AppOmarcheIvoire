@@ -11,7 +11,8 @@
 		"db:fix-password-reset": "bun run db:apply-password-reset-table && bun run db:mark-password-reset-migration"
 	},
 	"prisma": {
-		"seed": "bun run prisma/seed.ts"
+		"seed": "bun run prisma/seed.ts",
+		"db:import-production": "bun run scripts/import-production-dump.ts"
 	},
 	"dependencies": {
 		"@hono/swagger-ui": "^0.5.0",

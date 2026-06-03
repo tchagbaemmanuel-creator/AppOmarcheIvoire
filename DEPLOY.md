@@ -17,6 +17,18 @@
 
 Connexion : `admin@omarche.com` / `OMarche@2024`
 
+## Importer les données de production (Neon)
+
+Le fichier `database.sql` à la racine contient l’historique complet (commandes, marchés, utilisateurs, etc.). Sur Neon, seul le seed minimal ne suffit pas.
+
+```bash
+cd api
+# DATABASE_URL = chaîne Neon (dashboard Neon → Connection string)
+bun run db:import-production
+```
+
+Cela remplace les données de la base cible par le dump, puis remet le mot de passe `admin@omarche.com` à `OMarche@2024`.
+
 ## App mobile
 
 ### Option A — Expo Go (rapide)
