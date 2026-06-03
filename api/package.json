@@ -27,8 +27,7 @@
 		"react": "19.0.0",
 		"react-dom": "19.0.0",
 		"resend": "^4.1.2",
-		"winston": "^3.14.2",
-		"z": "^1.0.9"
+		"winston": "^3.14.2"
 	},
 	"devDependencies": {
 		"@types/react": "^19.0.12",
