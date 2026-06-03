@@ -31,7 +31,7 @@ export const Theme = {
 
 // Android Emulator: 10.0.2.2 pointe vers localhost de la machine hote.
 const LOCAL_API_URL = "http://10.0.2.2:3000";
-const PROD_API_URL = "https://api.omarcheivoire.ci";
+const PROD_API_URL = "https://appomarcheivoire.onrender.com";
 
 // Permet de forcer l'API en dev (ex: http://192.168.1.10:3000 pour un telephone en Wi-Fi).
 // Expo expose EXPO_PUBLIC_* a runtime dans process.env.

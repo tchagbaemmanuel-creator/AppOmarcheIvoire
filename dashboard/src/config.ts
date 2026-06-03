@@ -10,4 +10,6 @@ const useDevProxy =
 export const API_URL = useDevProxy
 	? ""
 	: remoteApiUrl ??
-		(import.meta.env.DEV ? "http://localhost:3000" : "https://api.omarcheivoire.ci");
+		(import.meta.env.DEV
+			? "http://localhost:3000"
+			: "https://appomarcheivoire.onrender.com");
