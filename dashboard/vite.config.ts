@@ -54,6 +54,33 @@ export default defineConfig(({ mode }) => {
 				"@": path.resolve(__dirname, "./src"),
 			},
 		},
+		build: {
+			chunkSizeWarningLimit: 800,
+			rollupOptions: {
+				output: {
+					manualChunks(id) {
+						if (!id.includes("node_modules")) return;
+						if (
+							id.includes("react-dom") ||
+							id.includes("react-router") ||
+							id.includes("scheduler")
+						) {
+							return "react-vendor";
+						}
+						if (id.includes("@reduxjs") || id.includes("react-redux")) {
+							return "redux-vendor";
+						}
+						if (
+							id.includes("@radix-ui") ||
+							id.includes("lucide-react") ||
+							id.includes("react-icons")
+						) {
+							return "ui-vendor";
+						}
+					},
+				},
+			},
+		},
 		server: {
 			proxy,
 		},
