@@ -51,9 +51,8 @@ const visuals = {
 		key: "shippers",
 		title: "Livreurs",
 		subtitle: "Gérez les livreurs et leurs affectations par marché.",
-		image:
-			"https://images.unsplash.com/photo-1578575437130-527eed3eabed?w=1200&q=80",
-		imageAlt: "Livreur à moto avec sac de livraison",
+		image: "/section-livreurs.jpg",
+		imageAlt: "Livreur à moto, livraison de courses",
 	},
 	users: {
 		key: "users",
