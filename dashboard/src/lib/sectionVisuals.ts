@@ -58,9 +58,8 @@ const visuals = {
 		key: "users",
 		title: "Utilisateurs",
 		subtitle: "Clients inscrits, historique et informations de compte.",
-		image:
-			"https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=80",
-		imageAlt: "Utilisateurs de l'application",
+		image: "/section-utilisateurs.jpg",
+		imageAlt: "Marché d'Adjamé, Abidjan — Côte d'Ivoire",
 	},
 	default: {
 		key: "default",
