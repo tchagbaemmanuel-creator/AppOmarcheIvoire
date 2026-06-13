@@ -25,12 +25,16 @@ import { Label } from "@/components/ui/label"
 import { FaEllipsisH } from "react-icons/fa"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ImageUpload } from "@/components/ui/image-upload"
+import { useSelector } from "react-redux"
+import { selectCurrentUser } from "@/redux/slices/authSlice"
+import { getAreaLabel } from "../views/MarketsScreen"
 
 interface MarketEditDialogProps {
     market: Market
 }
 
 export default function MarketEditDialog({ market }: MarketEditDialogProps) {
+    const user = useSelector(selectCurrentUser)!
     const [updateMarket] = useUpdateMarketMutation()
     const [isOpen, setIsOpen] = useState(false)
     const [formData, setFormData] = useState({
@@ -162,6 +166,14 @@ export default function MarketEditDialog({ market }: MarketEditDialogProps) {
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="areaCode">Zone</Label>
+                        {user.areaCode ? (
+                            <Input
+                                id="areaCode"
+                                value={getAreaLabel(user.areaCode)}
+                                readOnly
+                                disabled
+                            />
+                        ) : (
                         <Select
                             value={formData.areaCode}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, areaCode: value as AreaCode }))}
@@ -192,6 +204,7 @@ export default function MarketEditDialog({ market }: MarketEditDialogProps) {
                                 ))}
                             </SelectContent>
                         </Select>
+                        )}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Checkbox

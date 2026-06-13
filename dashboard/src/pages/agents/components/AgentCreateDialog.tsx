@@ -14,11 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { FaPlus } from "react-icons/fa6";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "@/redux/slices/authSlice";
 
 const AgentCreateDialog = () => {
+    const user = useSelector(selectCurrentUser)!;
     const [open, setOpen] = useState(false);
     const [createAgent] = useCreateAgentMutation();
-    const { data: markets } = useGetAllMarketsQuery();
+    const { data: markets } = useGetAllMarketsQuery(user.areaCode ?? undefined);
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",

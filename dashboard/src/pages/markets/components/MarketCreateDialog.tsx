@@ -25,8 +25,12 @@ import { Label } from "@/components/ui/label"
 import { FaPlus } from "react-icons/fa"
 import { FaImage } from "react-icons/fa6"
 import { ImageUpload } from "@/components/ui/image-upload"
+import { useSelector } from "react-redux"
+import { selectCurrentUser } from "@/redux/slices/authSlice"
+import { getAreaLabel } from "../views/MarketsScreen"
 
 export default function MarketCreateDialog() {
+    const user = useSelector(selectCurrentUser)!
     const [createMarket] = useCreateMarketMutation()
     const [isOpen, setIsOpen] = useState(false)
     const [formData, setFormData] = useState({
@@ -34,7 +38,7 @@ export default function MarketCreateDialog() {
         latitude: "0",
         longitude: "0",
         pictureUrl: undefined as string | undefined,
-        areaCode: "" as AreaCode
+        areaCode: (user.areaCode ?? "") as AreaCode
     })
     const [errors, setErrors] = useState<{
         name?: string;
@@ -68,8 +72,14 @@ export default function MarketCreateDialog() {
         if (!validateForm()) return
 
         try {
+            const areaCode = (user.areaCode ?? formData.areaCode) as AreaCode
+            if (!areaCode) {
+                toast.error("Veuillez sélectionner une zone")
+                return
+            }
             await createMarket({
                 ...formData,
+                areaCode,
                 latitude: parseFloat(formData.latitude),
                 longitude: parseFloat(formData.longitude)
             }).unwrap()
@@ -80,7 +90,7 @@ export default function MarketCreateDialog() {
                 latitude: "0",
                 longitude: "0",
                 pictureUrl: undefined,
-                areaCode: "COCODY"
+                areaCode: (user.areaCode ?? "COCODY") as AreaCode
             })
         } catch (error) {
             toast.error("Erreur lors de la création du marché")
@@ -168,6 +178,14 @@ export default function MarketCreateDialog() {
                     <div className="grid grid-cols-4 gap-4 items-center">
                         <Label htmlFor="areaCode">Zone</Label>
                         <div className="col-span-3">
+                        {user.areaCode ? (
+                            <Input
+                                id="areaCode"
+                                value={getAreaLabel(user.areaCode)}
+                                readOnly
+                                disabled
+                            />
+                        ) : (
                         <Select
                             value={formData.areaCode}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, areaCode: value as AreaCode }))}
@@ -198,6 +216,7 @@ export default function MarketCreateDialog() {
                                 ))}
                             </SelectContent>
                         </Select>
+                        )}
                         </div>
                     </div>
                     <div className="grid gap-2">

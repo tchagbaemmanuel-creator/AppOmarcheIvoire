@@ -15,16 +15,19 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { ImageUpload, MultiImageUpload } from "@/components/ui/image-upload";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "@/redux/slices/authSlice";
 
 interface AgentEditDialogProps {
     agent: Agent;
 }
 
 const AgentEditDialog = ({ agent }: AgentEditDialogProps) => {
+    const user = useSelector(selectCurrentUser)!;
     const [open, setOpen] = useState(false);
     const [updateAgent] = useUpdateAgentMutation();
     const [deleteAgent] = useDeleteAgentMutation();
-    const { data: markets } = useGetAllMarketsQuery();
+    const { data: markets } = useGetAllMarketsQuery(user.areaCode ?? undefined);
     const [formData, setFormData] = useState({
         firstName: agent.firstName,
         lastName: agent.lastName,

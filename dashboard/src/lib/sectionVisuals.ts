@@ -27,8 +27,7 @@ const visuals = {
 		key: "cards",
 		title: "Cartes cadeaux",
 		subtitle: "Créez et assignez les cartes cadeaux aux utilisateurs.",
-		image:
-			"https://images.unsplash.com/photo-1513885535758-7b57fbd381c6?w=1200&q=80",
+		image: "/section-cartes.jpg",
 		imageAlt: "Cartes cadeaux",
 	},
 	promoCodes: {

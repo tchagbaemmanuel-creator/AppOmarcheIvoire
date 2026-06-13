@@ -46,8 +46,9 @@ const ITEMS_PER_PAGE = 10;
 
 const MarketsScreen = (): JSX.Element => {
   const user = useSelector(selectCurrentUser)!;
-  // On affiche tous les marchés. Le filtre par zone peut être appliqué plus tard côté UI si nécessaire.
-  const { data: markets, isLoading, error } = useGetAllMarketsQuery(undefined);
+  const { data: markets, isLoading, error } = useGetAllMarketsQuery(
+    user.areaCode ?? undefined
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
@@ -90,7 +91,10 @@ const MarketsScreen = (): JSX.Element => {
         <div>
           <HeaderTitle>Marchés</HeaderTitle>
           <HeaderSubtitle>
-            Liste des marchés disponibles sur la plateforme et informations
+            {user.areaCode
+              ? `Marchés de la zone ${getAreaLabel(user.areaCode)}`
+              : "Tous les marchés de la plateforme"}
+            {markets ? ` — ${markets.length} au total` : ""}
           </HeaderSubtitle>
         </div>
         <div className="flex flex-row gap-4 justify-center items-center">

@@ -13,8 +13,30 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import AppError from "@/utils/AppError";
 import { Variables } from "..";
+import { area_code } from "@prisma/client";
 
 const marketHandler = new Hono<{ Variables: Variables}>();
+
+function resolveAreaFilter(
+  jwtArea: area_code | null | undefined,
+  queryArea?: area_code
+): area_code | undefined {
+  const isAdminSession = jwtArea !== undefined;
+  return isAdminSession ? (jwtArea ?? undefined) : (queryArea ?? undefined);
+}
+
+function assertMarketAreaAccess(
+  jwtArea: area_code | null | undefined,
+  marketAreaCode: area_code
+) {
+  if (jwtArea != null && jwtArea !== marketAreaCode) {
+    throw new AppError(
+      "Accès non autorisé à ce marché",
+      403,
+      new Error("Market area mismatch")
+    );
+  }
+}
 
 const AreaCodeDTO = z.enum([
   "ABOBO",
@@ -40,17 +62,22 @@ export const AreaCodeQueryValidator = z.object({
 // GET all markets
 marketHandler.get("/", zValidator("query", AreaCodeQueryValidator), async (c) => {
   const query = c.req.valid("query");
-  const markets = await getAllMarkets(query.a ?? undefined);
+  const jwtArea = c.get("areaCode");
+  const areaFilter = resolveAreaFilter(jwtArea, query.a ?? undefined);
+  const markets = await getAllMarkets(areaFilter);
   return c.json(markets);
 });
 
 // GET market by ID
 marketHandler.get("/:marketId", async (c) => {
   const { marketId } = c.req.param();
+  const jwtArea = c.get("areaCode");
   try {
     const market = await getMarketById(marketId);
+    assertMarketAreaAccess(jwtArea, market.areaCode);
     return c.json(market);
   } catch (error) {
+    if (error instanceof AppError) throw error;
     if (error instanceof Error && error.message === "Market not found") {
       throw new AppError("Ce marché n'existe pas", 404, error);
     }
@@ -58,9 +85,20 @@ marketHandler.get("/:marketId", async (c) => {
   }
 });
 
+async function getMarketAndAssertAccess(
+  marketId: string,
+  jwtArea: area_code | null | undefined
+) {
+  const market = await getMarketById(marketId);
+  assertMarketAreaAccess(jwtArea, market.areaCode);
+  return market;
+}
+
 // GET sellers from a market
 marketHandler.get("/:marketId/sellers", async (c) => {
   const { marketId } = c.req.param();
+  const jwtArea = c.get("areaCode");
+  await getMarketAndAssertAccess(marketId, jwtArea);
   const sellers = await getSellersFromMarketById(marketId);
   return c.json(sellers);
 });
@@ -68,6 +106,8 @@ marketHandler.get("/:marketId/sellers", async (c) => {
 // GET orders from a market
 marketHandler.get("/:marketId/orders", async (c) => {
   const { marketId } = c.req.param();
+  const jwtArea = c.get("areaCode");
+  await getMarketAndAssertAccess(marketId, jwtArea);
   const orders = await getOrdersByMarketId(marketId);
   return c.json(orders);
 });
@@ -75,6 +115,8 @@ marketHandler.get("/:marketId/orders", async (c) => {
 // GET orders from a market
 marketHandler.get("/:marketId/orders-details", async (c) => {
   const { marketId } = c.req.param();
+  const jwtArea = c.get("areaCode");
+  await getMarketAndAssertAccess(marketId, jwtArea);
   const orders = await getOrdersDetailsByMarketId(marketId);
   return c.json(orders);
 });
@@ -90,6 +132,14 @@ const CreateMarketDTO = z.object({
 // POST create a new market
 marketHandler.post("/", zValidator("json", CreateMarketDTO), async (c) => {
   const data = c.req.valid("json");
+  const jwtArea = c.get("areaCode");
+  if (jwtArea != null && data.areaCode !== jwtArea) {
+    throw new AppError(
+      "Vous ne pouvez créer un marché que dans votre zone",
+      403,
+      new Error("Market area mismatch on create")
+    );
+  }
   try {
     const newMarket = await createMarket(data);
     return c.json(newMarket, 201);
@@ -118,11 +168,22 @@ marketHandler.put(
   async (c) => {
     const { marketId } = c.req.param();
     const updateData = c.req.valid("json");
+    const jwtArea = c.get("areaCode");
 
     try {
+      const market = await getMarketById(marketId);
+      assertMarketAreaAccess(jwtArea, market.areaCode);
+      if (jwtArea != null && updateData.areaCode && updateData.areaCode !== jwtArea) {
+        throw new AppError(
+          "Vous ne pouvez pas déplacer un marché vers une autre zone",
+          403,
+          new Error("Market area mismatch on update")
+        );
+      }
       const updatedMarket = await updateMarket(marketId, updateData);
       return c.json(updatedMarket);
     } catch (error) {
+      if (error instanceof AppError) throw error;
       if (
         error instanceof Error &&
         error.message === "Market not found"
@@ -137,10 +198,14 @@ marketHandler.put(
 // DELETE a market
 marketHandler.delete("/:marketId", async (c) => {
   const { marketId } = c.req.param();
+  const jwtArea = c.get("areaCode");
   try {
+    const market = await getMarketById(marketId);
+    assertMarketAreaAccess(jwtArea, market.areaCode);
     await deleteMarket(marketId);
     return c.json({ message: "Marché supprimé avec succès" }, 200);
   } catch (error) {
+    if (error instanceof AppError) throw error;
     if (error instanceof Error && error.message === "Market not found") {
       throw new AppError("Ce marché n'existe pas", 404, error);
     }
